@@ -1149,6 +1149,7 @@
 
             // Show overlay
             document.getElementById('editMaskOverlay').classList.remove('hidden');
+            document.getElementById('gearBtn').style.display = 'none';
 
             // Set initial anchor selection
             currentEditAnchor = 'leftEye';
@@ -1168,6 +1169,7 @@
             }
 
             document.getElementById('editMaskOverlay').classList.add('hidden');
+            document.getElementById('gearBtn').style.display = 'flex';
             // Restart tracking
             if (faceLandmarker) {
                 startTracking();
@@ -1539,6 +1541,7 @@
 
         async function openGallery() {
             document.getElementById('galleryOverlay').classList.remove('hidden');
+            document.getElementById('gearBtn').style.display = 'none';
             stopTracking();
 
             // Always reload manifest to get latest masks
@@ -1549,6 +1552,7 @@
 
         function closeGallery() {
             document.getElementById('galleryOverlay').classList.add('hidden');
+            document.getElementById('gearBtn').style.display = 'flex';
             if (faceLandmarker) {
                 startTracking();
             }
