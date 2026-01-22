@@ -1,0 +1,2901 @@
+<!DOCTYPE html>
+<!-- Version 2.0 - Added eye anchor points feature -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Durrell Masks</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #1a1a2e;
+            min-height: 100vh;
+            min-height: -webkit-fill-available;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: white;
+            overflow: hidden;
+        }
+
+        .container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Tab navigation */
+        .tabs {
+            display: flex;
+            background: #0f0f1a;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            background: #16213e;
+            border: none;
+            color: #888;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            background: #e94560;
+            color: white;
+        }
+
+        /* View containers */
+        .view {
+            display: none;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .view.active {
+            display: flex;
+        }
+
+        .camera-container {
+            position: relative;
+            width: 100%;
+            flex: 1;
+            min-height: 300px;
+            overflow: hidden;
+            background: #000;
+        }
+
+        #video, #captureVideo {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #video {
+            transform: scaleX(-1);
+            -webkit-transform: scaleX(-1);
+        }
+
+        #debugCanvas, #captureCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        #previewCanvas {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            cursor: crosshair;
+        }
+
+        /* Checkerboard background for transparency preview */
+        .transparency-bg {
+            background-image:
+                linear-gradient(45deg, #444 25%, transparent 25%),
+                linear-gradient(-45deg, #444 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #444 75%),
+                linear-gradient(-45deg, transparent 75%, #444 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            background-color: #333;
+        }
+
+        .controls {
+            padding: 12px;
+            background: #16213e;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .control-btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 20px;
+            background: #0f3460;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+
+        .control-btn.active {
+            background: #e94560;
+        }
+
+        .control-btn.primary {
+            background: #e94560;
+            font-weight: 600;
+        }
+
+        .control-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .control-btn.success {
+            background: #27ae60;
+        }
+
+        .status {
+            padding: 8px;
+            text-align: center;
+            font-size: 12px;
+            color: #888;
+            background: #0f0f1a;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .loading-overlay.hidden {
+            display: none;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #333;
+            border-top-color: #e94560;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            margin-top: 12px;
+            font-size: 14px;
+            color: #888;
+        }
+
+        /* Slider controls */
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            background: #0f0f1a;
+        }
+
+        .slider-row label {
+            font-size: 12px;
+            color: #888;
+            min-width: 80px;
+        }
+
+        .slider-row input[type="range"] {
+            flex: 1;
+            height: 6px;
+            -webkit-appearance: none;
+            background: #333;
+            border-radius: 3px;
+        }
+
+        .slider-row input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #e94560;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .slider-value {
+            font-size: 12px;
+            color: #e94560;
+            min-width: 30px;
+            text-align: right;
+        }
+
+        /* Preview states */
+        .preview-container {
+            position: relative;
+            width: 100%;
+            flex: 1;
+            min-height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .preview-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Saved masks gallery */
+        .gallery {
+            display: flex;
+            gap: 8px;
+            padding: 8px;
+            overflow-x: auto;
+            background: #0f0f1a;
+        }
+
+        .gallery-item {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            border: 2px solid transparent;
+            flex-shrink: 0;
+        }
+
+        .gallery-item.selected {
+            border-color: #e94560;
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Points info bar */
+        .points-info {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: #1a3a5c;
+            border-top: 1px solid #0f3460;
+        }
+
+        .points-info span {
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        .control-btn.small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .control-btn.warning {
+            background: #e67e22;
+        }
+
+        /* Gallery Overlay */
+        .gallery-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #1a1a2e;
+            z-index: 150;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .gallery-overlay.hidden {
+            display: none;
+        }
+
+        .gallery-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #0f0f1a;
+            font-weight: 600;
+        }
+
+        .gallery-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            padding: 12px;
+            overflow-y: auto;
+            align-content: start;
+        }
+
+        .gallery-mask-item {
+            position: relative;
+            aspect-ratio: 1;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            background: #16213e;
+            border: 2px solid transparent;
+            transition: border-color 0.2s, transform 0.1s;
+        }
+
+        .gallery-mask-item:active {
+            transform: scale(0.95);
+        }
+
+        .gallery-mask-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .gallery-mask-item:hover {
+            border-color: #e94560;
+        }
+
+        .gallery-mask-item .delete-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(255,0,0,0.8);
+            border: none;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.7;
+        }
+
+        .gallery-mask-item .delete-btn:active {
+            opacity: 1;
+            background: rgba(255,0,0,1);
+        }
+
+        .gallery-loading, .gallery-empty {
+            grid-column: 1 / -1;
+            text-align: center;
+            color: #888;
+            padding: 40px;
+        }
+
+        /* Edit Mask Overlay */
+        .edit-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #1a1a2e;
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .edit-overlay.hidden {
+            display: none;
+        }
+
+        .edit-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #0f0f1a;
+            font-weight: 600;
+        }
+
+        .edit-canvas-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        #editMaskCanvas {
+            max-width: 100%;
+            max-height: 100%;
+            cursor: crosshair;
+        }
+
+        .edit-controls {
+            padding: 12px;
+            background: #16213e;
+        }
+
+        .anchor-buttons {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .anchor-btn {
+            flex: 1;
+            opacity: 0.6;
+        }
+
+        .anchor-btn.active {
+            opacity: 1;
+            background: #e94560;
+        }
+
+        .anchor-btn.placed {
+            border: 2px solid #27ae60;
+        }
+
+        .edit-status {
+            text-align: center;
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 12px;
+        }
+
+        .edit-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .edit-actions button {
+            flex: 1;
+        }
+
+        .version-tag {
+            position: fixed;
+            top: 5px;
+            left: 5px;
+            font-size: 10px;
+            color: #555;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .gear-btn {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.5);
+            border: none;
+            cursor: pointer;
+            z-index: 1001;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .gear-btn:active {
+            background: rgba(0,0,0,0.7);
+        }
+
+        .ui-hidden .tabs,
+        .ui-hidden .controls,
+        .ui-hidden .version-tag {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <button class="gear-btn" id="gearBtn">&#9881;</button>
+    <div class="version-tag">v5.1-mouth</div>
+    <div id="debugInfo" style="display:none;position:fixed;bottom:10px;left:10px;background:rgba(0,0,0,0.8);color:#0f0;font-family:monospace;font-size:12px;padding:10px;z-index:9999;max-width:90%;"></div>
+    <div class="container ui-hidden">
+        <!-- Tab Navigation -->
+        <div class="tabs">
+            <button class="tab active" data-view="track">Face Track</button>
+            <button class="tab" data-view="capture">Create Mask</button>
+        </div>
+
+        <!-- Face Tracking View -->
+        <div class="view active" id="trackView">
+            <div class="camera-container">
+                <video id="video" autoplay playsinline muted></video>
+                <canvas id="debugCanvas"></canvas>
+                <div id="tapOverlay" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:100;"></div>
+                <div class="loading-overlay" id="loadingOverlay">
+                    <div class="spinner"></div>
+                    <div class="loading-text" id="loadingText">Initializing...</div>
+                </div>
+            </div>
+            <div class="controls">
+                <button class="control-btn" id="galleryBtn">Choose Mask</button>
+                <label class="control-btn" id="loadMaskLabel">
+                    Load File
+                    <input type="file" id="loadMaskInput" accept=".json" style="display:none">
+                </label>
+                <button class="control-btn" id="editMaskBtn" style="display:none">Edit Mask</button>
+                <button class="control-btn" id="clearMaskBtn" style="display:none">Clear Mask</button>
+            </div>
+
+            <!-- Mask Gallery Overlay -->
+            <div class="gallery-overlay hidden" id="galleryOverlay">
+                <div class="gallery-header">
+                    <span>Choose a Mask <span id="maskCount" style="opacity:0.7"></span></span>
+                    <button class="control-btn small" id="closeGalleryBtn">Close</button>
+                </div>
+                <div class="gallery-grid" id="galleryGrid">
+                    <div class="gallery-loading">Loading masks...</div>
+                </div>
+            </div>
+
+            <!-- Edit Mask Overlay -->
+            <div class="edit-overlay hidden" id="editMaskOverlay">
+                <div class="edit-header">
+                    <button class="control-btn small" id="closeEditBtn">Done</button>
+                    <span>Edit Anchor Points</span>
+                </div>
+                <div class="edit-canvas-container transparency-bg">
+                    <canvas id="editMaskCanvas"></canvas>
+                    <video id="textureVideo" autoplay playsinline muted style="display:none"></video>
+                </div>
+                <div class="edit-controls" id="anchorControls">
+                    <div class="anchor-buttons">
+                        <button class="control-btn anchor-btn active" data-anchor="leftEye">L Eye</button>
+                        <button class="control-btn anchor-btn" data-anchor="rightEye">R Eye</button>
+                        <button class="control-btn anchor-btn" data-anchor="leftMouth">L Mouth</button>
+                        <button class="control-btn anchor-btn" data-anchor="rightMouth">R Mouth</button>
+                    </div>
+                    <div class="edit-status" id="editStatus">Tap on LEFT side of mask for left eye</div>
+                    <div class="edit-actions">
+                        <button class="control-btn" id="resetPointsBtn">Reset All</button>
+                        <button class="control-btn" id="textureBtn">Change Texture</button>
+                        <button class="control-btn primary" id="publishEditBtn">Publish</button>
+                    </div>
+                </div>
+                <div class="edit-controls hidden" id="textureControls">
+                    <div class="edit-status" id="textureStatus">Point camera at texture and tap Capture</div>
+                    <div class="edit-actions">
+                        <button class="control-btn" id="cancelTextureBtn">Cancel</button>
+                        <button class="control-btn success" id="captureTextureBtn">Capture Texture</button>
+                    </div>
+                </div>
+            </div>
+            <div class="status" id="trackStatus">Initializing...</div>
+        </div>
+
+        <!-- Capture/Create Mask View -->
+        <div class="view" id="captureView">
+            <!-- Camera state -->
+            <div id="captureCamera" class="camera-container">
+                <video id="captureVideo" autoplay playsinline muted></video>
+            </div>
+
+            <!-- Preview state (after photo taken) -->
+            <div id="capturePreview" class="preview-container transparency-bg hidden">
+                <canvas id="previewCanvas"></canvas>
+            </div>
+
+            <div class="slider-row" id="toleranceRow">
+                <label>Tolerance:</label>
+                <input type="range" id="toleranceSlider" min="10" max="150" value="60">
+                <span class="slider-value" id="toleranceValue">60</span>
+            </div>
+
+            <div class="controls" id="captureControls">
+                <button class="control-btn primary" id="takePhotoBtn">Take Photo</button>
+            </div>
+
+            <div class="controls hidden" id="editControls">
+                <button class="control-btn" id="retakeBtn">Retake</button>
+                <button class="control-btn" id="addPointsBtn">Add Anchors</button>
+                <button class="control-btn" id="createTextureBtn">Change Texture</button>
+                <button class="control-btn success" id="saveMaskBtn">Save</button>
+                <button class="control-btn primary" id="publishBtn">Publish</button>
+            </div>
+
+            <div class="points-info hidden" id="pointsInfo">
+                <span id="pointsStatus">Tap LEFT side for left eye, then RIGHT side</span>
+                <button class="control-btn small" id="clearPointsBtn">Clear Points</button>
+            </div>
+
+            <div class="status" id="captureStatus">Point camera at your drawing and tap "Take Photo"</div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { FaceLandmarker, FilesetResolver } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.8/+esm';
+
+        // ============================================
+        // LANDMARK INDICES
+        // ============================================
+
+        const LEFT_EYE_CENTER = 468;
+        const RIGHT_EYE_CENTER = 473;
+        const LEFT_EYE_INNER = 133;
+        const LEFT_EYE_OUTER = 33;
+        const RIGHT_EYE_INNER = 362;
+        const RIGHT_EYE_OUTER = 263;
+        const MOUTH_LEFT = 61;
+        const MOUTH_RIGHT = 291;
+        const UPPER_LIP_TOP = 13;
+        const LOWER_LIP_BOTTOM = 14;
+        const FACE_OVAL = [
+            10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288,
+            397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136,
+            172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109
+        ];
+        const LEFT_EAR_TOP = 127;
+        const LEFT_EAR_BOTTOM = 234;
+        const RIGHT_EAR_TOP = 356;
+        const RIGHT_EAR_BOTTOM = 454;
+
+        // ============================================
+        // STATE
+        // ============================================
+
+        let faceLandmarker = null;
+        let trackVideo = null;
+        let trackCanvas = null;
+        let trackCtx = null;
+        let isTracking = false;
+        let trackAnimationId = null;
+
+        let captureVideo = null;
+        let captureStream = null;
+        let previewCanvas = null;
+        let previewCtx = null;
+        let originalImageData = null;
+        let currentView = 'track';
+
+        // Saved masks
+        const savedMasks = [];
+
+        // Anchor point placement state (eyes and mouth)
+        let eyePointMode = false;
+        let eyePoints = { left: null, right: null, leftMouth: null, rightMouth: null };
+
+        // Current mask state (after background removal and hole cuts)
+        let currentMaskData = null;
+
+        // Loaded mask for face tracking
+        let loadedMask = null;  // { image: HTMLImageElement, anchors: { leftEye, rightEye } }
+        let maskImage = null;
+
+        // Gallery
+        let galleryManifest = null;
+        let currentMaskIndex = 0;
+
+        // GitHub config for direct publishing
+        const GITHUB_REPO = 'DurrellBishop-iCloud/Durrell-Masks';
+        const GITHUB_BRANCH = 'main';
+
+        // ============================================
+        // TAB NAVIGATION
+        // ============================================
+
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const viewId = tab.dataset.view;
+                switchView(viewId);
+            });
+        });
+
+        function switchView(viewId) {
+            // Update tabs
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`[data-view="${viewId}"]`).classList.add('active');
+
+            // Update views
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(viewId + 'View').classList.add('active');
+
+            currentView = viewId;
+
+            // Handle camera switching
+            if (viewId === 'capture') {
+                stopTracking();
+                startCaptureCamera();
+            } else {
+                stopCaptureCamera();
+                // Restart face tracking when returning to track view
+                if (faceLandmarker && !isTracking) {
+                    startTracking();
+                }
+            }
+        }
+
+        // ============================================
+        // FACE TRACKING (same as before)
+        // ============================================
+
+        async function initializeFaceLandmarker() {
+            updateStatus('track', 'Loading face detection model...');
+
+            const filesetResolver = await FilesetResolver.forVisionTasks(
+                'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.8/wasm'
+            );
+
+            faceLandmarker = await FaceLandmarker.createFromOptions(filesetResolver, {
+                baseOptions: {
+                    modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
+                    delegate: 'GPU'
+                },
+                runningMode: 'VIDEO',
+                numFaces: 1,
+                minFaceDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5,
+                outputFaceBlendshapes: false,
+                outputFacialTransformationMatrixes: false
+            });
+
+            updateStatus('track', 'Model loaded - Starting camera...');
+            hideLoading();
+
+            // Auto-start tracking
+            startTracking();
+        }
+
+        async function startTracking() {
+            try {
+                updateStatus('track', 'Requesting camera access...');
+                showLoading('Accessing camera...');
+
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+                    audio: false
+                });
+
+                trackVideo = document.getElementById('video');
+                trackVideo.srcObject = stream;
+                await new Promise(r => trackVideo.onloadedmetadata = r);
+                await trackVideo.play();
+
+                trackCanvas = document.getElementById('debugCanvas');
+                trackCtx = trackCanvas.getContext('2d');
+                resizeTrackCanvas();
+
+                hideLoading();
+                isTracking = true;
+                updateStatus('track', 'Face tracking active');
+
+                detectFaces();
+            } catch (error) {
+                console.error('Camera error:', error);
+                updateStatus('track', 'Camera error: ' + error.message);
+                hideLoading();
+            }
+        }
+
+        function stopTracking() {
+            isTracking = false;
+            if (trackAnimationId) {
+                cancelAnimationFrame(trackAnimationId);
+                trackAnimationId = null;
+            }
+            if (trackVideo && trackVideo.srcObject) {
+                trackVideo.srcObject.getTracks().forEach(t => t.stop());
+                trackVideo.srcObject = null;
+            }
+            if (trackCtx) {
+                trackCtx.clearRect(0, 0, trackCanvas.width, trackCanvas.height);
+            }
+        }
+
+        function resizeTrackCanvas() {
+            const container = trackCanvas.parentElement;
+            const rect = container.getBoundingClientRect();
+            trackCanvas.width = rect.width;
+            trackCanvas.height = rect.height;
+        }
+
+        function detectFaces() {
+            if (!isTracking || !faceLandmarker || !trackVideo) return;
+
+            try {
+                const results = faceLandmarker.detectForVideo(trackVideo, performance.now());
+                trackCtx.clearRect(0, 0, trackCanvas.width, trackCanvas.height);
+
+                if (results.faceLandmarks && results.faceLandmarks.length > 0) {
+                    const landmarks = results.faceLandmarks[0];
+
+                    // Draw mask
+                    if (loadedMask && maskImage) {
+                        drawMaskOverlay(landmarks);
+                    }
+
+                    // Debug overlay disabled for now - uncomment to show face landmarks
+                    // drawDebugOverlay(landmarks);
+                }
+            } catch (error) {
+                console.error('Detection error:', error);
+            }
+
+            trackAnimationId = requestAnimationFrame(detectFaces);
+        }
+
+        function drawDebugOverlay(landmarks) {
+            const w = trackCanvas.width;
+            const h = trackCanvas.height;
+            const toCanvas = (idx) => ({
+                x: (1 - landmarks[idx].x) * w,
+                y: landmarks[idx].y * h
+            });
+
+            // Face oval
+            trackCtx.strokeStyle = 'rgba(0, 255, 255, 0.7)';
+            trackCtx.lineWidth = 2;
+            trackCtx.beginPath();
+            const first = toCanvas(FACE_OVAL[0]);
+            trackCtx.moveTo(first.x, first.y);
+            for (let i = 1; i < FACE_OVAL.length; i++) {
+                const pt = toCanvas(FACE_OVAL[i]);
+                trackCtx.lineTo(pt.x, pt.y);
+            }
+            trackCtx.closePath();
+            trackCtx.stroke();
+
+            // Eyes
+            trackCtx.fillStyle = '#00ff00';
+            [LEFT_EYE_CENTER, RIGHT_EYE_CENTER].forEach(idx => {
+                const pt = toCanvas(idx);
+                trackCtx.beginPath();
+                trackCtx.arc(pt.x, pt.y, 6, 0, Math.PI * 2);
+                trackCtx.fill();
+            });
+
+            trackCtx.fillStyle = '#ffff00';
+            [LEFT_EYE_INNER, LEFT_EYE_OUTER, RIGHT_EYE_INNER, RIGHT_EYE_OUTER].forEach(idx => {
+                const pt = toCanvas(idx);
+                trackCtx.beginPath();
+                trackCtx.arc(pt.x, pt.y, 3, 0, Math.PI * 2);
+                trackCtx.fill();
+            });
+
+            // Mouth
+            const mL = toCanvas(MOUTH_LEFT);
+            const mR = toCanvas(MOUTH_RIGHT);
+            trackCtx.strokeStyle = '#ff00ff';
+            trackCtx.lineWidth = 3;
+            trackCtx.beginPath();
+            trackCtx.moveTo(mL.x, mL.y);
+            trackCtx.lineTo(mR.x, mR.y);
+            trackCtx.stroke();
+
+            trackCtx.fillStyle = '#ff00ff';
+            [mL, mR].forEach(pt => {
+                trackCtx.beginPath();
+                trackCtx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+                trackCtx.fill();
+            });
+
+            const uL = toCanvas(UPPER_LIP_TOP);
+            const lL = toCanvas(LOWER_LIP_BOTTOM);
+            trackCtx.fillStyle = '#ff6600';
+            [uL, lL].forEach(pt => {
+                trackCtx.beginPath();
+                trackCtx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+                trackCtx.fill();
+            });
+
+            // Ears
+            trackCtx.strokeStyle = '#ffff00';
+            trackCtx.lineWidth = 3;
+            const leT = toCanvas(LEFT_EAR_TOP);
+            const leB = toCanvas(LEFT_EAR_BOTTOM);
+            trackCtx.beginPath();
+            trackCtx.moveTo(leT.x, leT.y);
+            trackCtx.lineTo(leB.x, leB.y);
+            trackCtx.stroke();
+
+            const reT = toCanvas(RIGHT_EAR_TOP);
+            const reB = toCanvas(RIGHT_EAR_BOTTOM);
+            trackCtx.beginPath();
+            trackCtx.moveTo(reT.x, reT.y);
+            trackCtx.lineTo(reB.x, reB.y);
+            trackCtx.stroke();
+
+            trackCtx.fillStyle = '#ffff00';
+            [leT, leB, reT, reB].forEach(pt => {
+                trackCtx.beginPath();
+                trackCtx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+                trackCtx.fill();
+            });
+        }
+
+        function drawMaskOverlay(landmarks) {
+            if (!loadedMask || !maskImage) return;
+
+            const w = trackCanvas.width;
+            const h = trackCanvas.height;
+
+            // Get detected eye positions (mirrored for selfie view)
+            // In mirrored view: user's left eye appears on LEFT of screen
+            const leftEye = {
+                x: (1 - landmarks[LEFT_EYE_CENTER].x) * w,
+                y: landmarks[LEFT_EYE_CENTER].y * h
+            };
+            const rightEye = {
+                x: (1 - landmarks[RIGHT_EYE_CENTER].x) * w,
+                y: landmarks[RIGHT_EYE_CENTER].y * h
+            };
+
+            // Get detected mouth positions (mirrored)
+            const leftMouth = {
+                x: (1 - landmarks[MOUTH_LEFT].x) * w,
+                y: landmarks[MOUTH_LEFT].y * h
+            };
+            const rightMouth = {
+                x: (1 - landmarks[MOUTH_RIGHT].x) * w,
+                y: landmarks[MOUTH_RIGHT].y * h
+            };
+
+            // Get mask anchor points - flip X to match mirrored view
+            // User places "Left" on left of screen, we flip so it aligns with left of face
+            const maskLeftEye = {
+                x: (1 - loadedMask.anchors.leftEye.x) * loadedMask.width,
+                y: loadedMask.anchors.leftEye.y * loadedMask.height
+            };
+            const maskRightEye = {
+                x: (1 - loadedMask.anchors.rightEye.x) * loadedMask.width,
+                y: loadedMask.anchors.rightEye.y * loadedMask.height
+            };
+
+            // Calculate distances between eyes
+            const faceEyeDist = Math.sqrt(
+                Math.pow(rightEye.x - leftEye.x, 2) +
+                Math.pow(rightEye.y - leftEye.y, 2)
+            );
+            const maskEyeDist = Math.sqrt(
+                Math.pow(maskRightEye.x - maskLeftEye.x, 2) +
+                Math.pow(maskRightEye.y - maskLeftEye.y, 2)
+            );
+
+            // Base scale from eyes
+            let scale = faceEyeDist / maskEyeDist;
+            let scaleX = scale;
+            let scaleY = scale;
+
+            // If mask has mouth anchors, calculate horizontal stretch for mouth
+            if (loadedMask.anchors.leftMouth && loadedMask.anchors.rightMouth) {
+                const maskLeftMouth = {
+                    x: (1 - loadedMask.anchors.leftMouth.x) * loadedMask.width,
+                    y: loadedMask.anchors.leftMouth.y * loadedMask.height
+                };
+                const maskRightMouth = {
+                    x: (1 - loadedMask.anchors.rightMouth.x) * loadedMask.width,
+                    y: loadedMask.anchors.rightMouth.y * loadedMask.height
+                };
+
+                // Calculate mouth widths
+                const faceMouthDist = Math.sqrt(
+                    Math.pow(rightMouth.x - leftMouth.x, 2) +
+                    Math.pow(rightMouth.y - leftMouth.y, 2)
+                );
+                const maskMouthDist = Math.sqrt(
+                    Math.pow(maskRightMouth.x - maskLeftMouth.x, 2) +
+                    Math.pow(maskRightMouth.y - maskLeftMouth.y, 2)
+                );
+
+                // Calculate mouth-based scale
+                const mouthScale = faceMouthDist / maskMouthDist;
+
+                // Blend eye scale for Y (height) and mouth scale for X (width)
+                // This stretches the mask horizontally when mouth is wider
+                scaleX = (scale + mouthScale) / 2;  // Average for smoother result
+                scaleY = scale;  // Keep vertical based on eyes
+            }
+
+            // Calculate rotation angles
+            const faceAngle = Math.atan2(
+                rightEye.y - leftEye.y,
+                rightEye.x - leftEye.x
+            );
+            const maskAngle = Math.atan2(
+                maskRightEye.y - maskLeftEye.y,
+                maskRightEye.x - maskLeftEye.x
+            );
+            const rotation = faceAngle - maskAngle;
+
+            // Calculate center points
+            const faceCenterX = (leftEye.x + rightEye.x) / 2;
+            const faceCenterY = (leftEye.y + rightEye.y) / 2;
+            const maskCenterX = (maskLeftEye.x + maskRightEye.x) / 2;
+            const maskCenterY = (maskLeftEye.y + maskRightEye.y) / 2;
+
+            // Draw the mask with transformation
+            trackCtx.save();
+
+            // Move to face center
+            trackCtx.translate(faceCenterX, faceCenterY);
+
+            // Rotate to match face angle
+            trackCtx.rotate(rotation);
+
+            // Scale to match face size AND flip horizontally to match mirrored view
+            // scaleX may include mouth-based stretch, scaleY is eye-based only
+            trackCtx.scale(-scaleX, scaleY);
+
+            // Draw image - offset adjusted for the flip
+            trackCtx.drawImage(
+                maskImage,
+                maskCenterX - loadedMask.width,
+                -maskCenterY,
+                loadedMask.width,
+                loadedMask.height
+            );
+
+            trackCtx.restore();
+        }
+
+        async function loadMaskFile(file) {
+            try {
+                const text = await file.text();
+                const data = JSON.parse(text);
+
+                if (!data.image || !data.anchors || !data.anchors.leftEye || !data.anchors.rightEye) {
+                    updateStatus('track', 'Invalid mask file - missing eye anchors');
+                    return;
+                }
+
+                // Load the image
+                const img = new Image();
+                img.onload = () => {
+                    maskImage = img;
+                    loadedMask = {
+                        width: data.width,
+                        height: data.height,
+                        anchors: data.anchors
+                    };
+                    document.getElementById('clearMaskBtn').style.display = 'inline-block';
+                    document.getElementById('editMaskBtn').style.display = 'inline-block';
+                    updateStatus('track', 'Mask loaded!');
+                };
+                img.onerror = () => {
+                    updateStatus('track', 'Error loading mask image');
+                };
+                img.src = data.image;
+
+            } catch (error) {
+                console.error('Error loading mask:', error);
+                updateStatus('track', 'Error loading mask file');
+            }
+        }
+
+        function clearLoadedMask() {
+            loadedMask = null;
+            maskImage = null;
+            document.getElementById('clearMaskBtn').style.display = 'none';
+            document.getElementById('editMaskBtn').style.display = 'none';
+            updateStatus('track', 'Mask cleared');
+        }
+
+        // ============================================
+        // EDIT MASK
+        // ============================================
+
+        let editCanvas = null;
+        let editCtx = null;
+        let editAnchors = {};
+        let currentEditAnchor = 'leftEye';
+
+        function openEditMask() {
+            if (!loadedMask || !maskImage) return;
+
+            // Stop face tracking while editing
+            stopTracking();
+
+            // Copy current anchors for editing (eyes and mouth)
+            editAnchors = {
+                leftEye: loadedMask.anchors.leftEye ? { ...loadedMask.anchors.leftEye } : null,
+                rightEye: loadedMask.anchors.rightEye ? { ...loadedMask.anchors.rightEye } : null,
+                leftMouth: loadedMask.anchors.leftMouth ? { ...loadedMask.anchors.leftMouth } : null,
+                rightMouth: loadedMask.anchors.rightMouth ? { ...loadedMask.anchors.rightMouth } : null
+            };
+
+            // Setup edit canvas
+            editCanvas = document.getElementById('editMaskCanvas');
+            editCtx = editCanvas.getContext('2d');
+            editCanvas.width = loadedMask.width;
+            editCanvas.height = loadedMask.height;
+
+            // Show overlay
+            document.getElementById('editMaskOverlay').classList.remove('hidden');
+
+            // Set initial anchor selection
+            currentEditAnchor = 'leftEye';
+            updateAnchorButtons();
+            drawEditMask();
+        }
+
+        function closeEditMask() {
+            // Stop texture mode if active
+            if (textureStream) {
+                stopTextureMode();
+            }
+
+            // Auto-save anchor changes if both points are set
+            if (editAnchors.leftEye && editAnchors.rightEye) {
+                loadedMask.anchors = { ...editAnchors };
+            }
+
+            document.getElementById('editMaskOverlay').classList.add('hidden');
+            // Restart tracking
+            if (faceLandmarker) {
+                startTracking();
+            }
+        }
+
+        function drawEditMask() {
+            if (!editCtx || !maskImage) return;
+
+            // Draw mask image
+            editCtx.clearRect(0, 0, editCanvas.width, editCanvas.height);
+            editCtx.drawImage(maskImage, 0, 0);
+
+            // Draw eye anchor points (green)
+            if (editAnchors.leftEye) {
+                const x = editAnchors.leftEye.x * loadedMask.width;
+                const y = editAnchors.leftEye.y * loadedMask.height;
+                drawEditMarker(x, y, '#00ff00', 'LE', currentEditAnchor === 'leftEye');
+            }
+            if (editAnchors.rightEye) {
+                const x = editAnchors.rightEye.x * loadedMask.width;
+                const y = editAnchors.rightEye.y * loadedMask.height;
+                drawEditMarker(x, y, '#00ff00', 'RE', currentEditAnchor === 'rightEye');
+            }
+
+            // Draw mouth anchor points (orange)
+            if (editAnchors.leftMouth) {
+                const x = editAnchors.leftMouth.x * loadedMask.width;
+                const y = editAnchors.leftMouth.y * loadedMask.height;
+                drawEditMarker(x, y, '#ff9900', 'LM', currentEditAnchor === 'leftMouth');
+            }
+            if (editAnchors.rightMouth) {
+                const x = editAnchors.rightMouth.x * loadedMask.width;
+                const y = editAnchors.rightMouth.y * loadedMask.height;
+                drawEditMarker(x, y, '#ff9900', 'RM', currentEditAnchor === 'rightMouth');
+            }
+
+            updateEditStatus();
+        }
+
+        function drawEditMarker(x, y, color, label, isActive) {
+            const radius = Math.max(15, editCanvas.width * 0.02);
+
+            // Outer circle
+            editCtx.strokeStyle = isActive ? '#ffff00' : color;
+            editCtx.lineWidth = isActive ? 4 : 3;
+            editCtx.beginPath();
+            editCtx.arc(x, y, radius, 0, Math.PI * 2);
+            editCtx.stroke();
+
+            // Inner dot
+            editCtx.fillStyle = isActive ? '#ffff00' : color;
+            editCtx.beginPath();
+            editCtx.arc(x, y, 4, 0, Math.PI * 2);
+            editCtx.fill();
+
+            // Label
+            editCtx.font = `bold ${radius}px sans-serif`;
+            editCtx.fillStyle = isActive ? '#ffff00' : color;
+            editCtx.textAlign = 'center';
+            editCtx.textBaseline = 'middle';
+            editCtx.fillText(label, x, y + radius + 15);
+        }
+
+        function updateAnchorButtons() {
+            document.querySelectorAll('.anchor-btn').forEach(btn => {
+                const anchor = btn.dataset.anchor;
+                btn.classList.toggle('active', anchor === currentEditAnchor);
+                btn.classList.toggle('placed', editAnchors[anchor] !== null);
+            });
+        }
+
+        function updateEditStatus() {
+            const status = document.getElementById('editStatus');
+            const labels = {
+                leftEye: 'LEFT eye',
+                rightEye: 'RIGHT eye',
+                leftMouth: 'LEFT mouth corner',
+                rightMouth: 'RIGHT mouth corner'
+            };
+            const label = labels[currentEditAnchor] || currentEditAnchor;
+            if (editAnchors[currentEditAnchor]) {
+                status.textContent = `${label} placed. Tap to reposition or select another point.`;
+            } else {
+                status.textContent = `Tap on mask to place ${label}`;
+            }
+        }
+
+        function placeEditAnchor(canvasX, canvasY) {
+            // Convert to normalized coordinates
+            const normX = canvasX / loadedMask.width;
+            const normY = canvasY / loadedMask.height;
+
+            editAnchors[currentEditAnchor] = { x: normX, y: normY };
+
+            updateAnchorButtons();
+            drawEditMask();
+
+            // Auto-advance to next unplaced anchor
+            const sequence = ['leftEye', 'rightEye', 'leftMouth', 'rightMouth'];
+            const currentIndex = sequence.indexOf(currentEditAnchor);
+            for (let i = currentIndex + 1; i < sequence.length; i++) {
+                if (!editAnchors[sequence[i]]) {
+                    currentEditAnchor = sequence[i];
+                    updateAnchorButtons();
+                    updateEditStatus();
+                    return;
+                }
+            }
+        }
+
+        function resetEditAnchors() {
+            editAnchors = { leftEye: null, rightEye: null, leftMouth: null, rightMouth: null };
+            currentEditAnchor = 'leftEye';
+            updateAnchorButtons();
+            drawEditMask();
+        }
+
+        function saveEditedMask() {
+            if (!editAnchors.leftEye || !editAnchors.rightEye) {
+                document.getElementById('editStatus').textContent = 'Please place both eye points before saving';
+                return;
+            }
+
+            // Update the loaded mask with new anchors
+            loadedMask.anchors = { ...editAnchors };
+
+            // Save to file
+            const maskData = {
+                version: 1,
+                image: maskImage.src,
+                width: loadedMask.width,
+                height: loadedMask.height,
+                anchors: editAnchors
+            };
+
+            const jsonStr = JSON.stringify(maskData, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const link = document.createElement('a');
+            link.download = 'mask-edited-' + Date.now() + '.json';
+            link.href = URL.createObjectURL(blob);
+            link.click();
+            URL.revokeObjectURL(link.href);
+
+            closeEditMask();
+            updateStatus('track', 'Mask saved with updated anchor points!');
+        }
+
+        async function publishFromEditMask() {
+            if (!editAnchors.leftEye || !editAnchors.rightEye) {
+                document.getElementById('editStatus').textContent = 'Please place both eye points before publishing';
+                return;
+            }
+
+            const token = getGitHubToken();
+            if (!token) {
+                document.getElementById('editStatus').textContent = 'GitHub token required';
+                return;
+            }
+
+            const maskName = prompt('Enter a name for this mask:', 'My Mask');
+            if (!maskName) return;
+
+            document.getElementById('editStatus').textContent = 'Publishing to GitHub...';
+
+            try {
+                const maskId = 'mask-' + Date.now();
+
+                // Redraw canvas WITHOUT markers before capturing
+                editCtx.clearRect(0, 0, editCanvas.width, editCanvas.height);
+                editCtx.drawImage(maskImage, 0, 0);
+
+                // Get PNG as base64 (clean, no markers)
+                const imageDataUrl = editCanvas.toDataURL('image/png');
+                const base64Image = imageDataUrl.replace(/^data:image\/png;base64,/, '');
+
+                // Redraw with markers so user can still see them
+                drawEditMask();
+
+                const manifestEntry = {
+                    id: maskId,
+                    name: maskName,
+                    image: `durrell-masks/images/${maskId}.png`,
+                    anchors: editAnchors
+                };
+
+                // Upload image
+                await uploadToGitHub(token, `durrell-masks/images/${maskId}.png`, base64Image, `Add mask image: ${maskName}`);
+
+                // Get and update manifest
+                const manifestResponse = await fetch(
+                    `https://api.github.com/repos/${GITHUB_REPO}/contents/durrell-masks/manifest.json`,
+                    { headers: { 'Authorization': `token ${token}` } }
+                );
+                const manifestData = await manifestResponse.json();
+                const currentManifest = JSON.parse(atob(manifestData.content));
+                currentManifest.masks.push(manifestEntry);
+
+                await uploadToGitHub(token, 'durrell-masks/manifest.json', btoa(JSON.stringify(currentManifest, null, 2)), `Add mask to gallery: ${maskName}`, manifestData.sha);
+
+                galleryManifest = null;
+                document.getElementById('editStatus').textContent = `"${maskName}" published!`;
+
+                // Also update the loaded mask
+                loadedMask.anchors = { ...editAnchors };
+
+            } catch (error) {
+                console.error('Publish error:', error);
+                if (error.message.includes('401')) {
+                    localStorage.removeItem('github_token');
+                    document.getElementById('editStatus').textContent = 'Invalid token. Try again.';
+                } else {
+                    document.getElementById('editStatus').textContent = 'Publish failed: ' + error.message;
+                }
+            }
+        }
+
+        // ============================================
+        // TEXTURE MODE
+        // ============================================
+
+        let textureVideo = null;
+        let textureStream = null;
+        let textureAnimationId = null;
+        let maskAlphaData = null;  // Store the mask's alpha channel
+
+        async function startTextureMode() {
+            try {
+                // Store the mask's alpha channel before we start
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = loadedMask.width;
+                tempCanvas.height = loadedMask.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(maskImage, 0, 0);
+                maskAlphaData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+
+                // Start rear camera
+                textureStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
+                    audio: false
+                });
+
+                textureVideo = document.getElementById('textureVideo');
+                textureVideo.srcObject = textureStream;
+                await new Promise(r => textureVideo.onloadedmetadata = r);
+                await textureVideo.play();
+
+                // Show texture controls, hide anchor controls
+                document.getElementById('anchorControls').classList.add('hidden');
+                document.getElementById('textureControls').classList.remove('hidden');
+
+                // Start render loop
+                renderTexturePreview();
+
+            } catch (error) {
+                console.error('Texture camera error:', error);
+                document.getElementById('textureStatus').textContent = 'Camera error: ' + error.message;
+            }
+        }
+
+        function stopTextureMode() {
+            if (textureAnimationId) {
+                cancelAnimationFrame(textureAnimationId);
+                textureAnimationId = null;
+            }
+            if (textureStream) {
+                textureStream.getTracks().forEach(t => t.stop());
+                textureStream = null;
+            }
+            if (textureVideo) {
+                textureVideo.srcObject = null;
+            }
+
+            // Show anchor controls, hide texture controls
+            document.getElementById('anchorControls').classList.remove('hidden');
+            document.getElementById('textureControls').classList.add('hidden');
+
+            // Redraw original mask
+            drawEditMask();
+        }
+
+        function renderTexturePreview() {
+            if (!textureStream || !textureVideo || !editCtx) {
+                return;
+            }
+
+            const width = editCanvas.width;
+            const height = editCanvas.height;
+
+            // Clear canvas
+            editCtx.clearRect(0, 0, width, height);
+
+            // Calculate how to fit camera frame into mask dimensions
+            const videoAspect = textureVideo.videoWidth / textureVideo.videoHeight;
+            const maskAspect = width / height;
+
+            let sx = 0, sy = 0, sw = textureVideo.videoWidth, sh = textureVideo.videoHeight;
+
+            // Crop video to match mask aspect ratio (center crop)
+            if (videoAspect > maskAspect) {
+                // Video is wider - crop sides
+                sw = textureVideo.videoHeight * maskAspect;
+                sx = (textureVideo.videoWidth - sw) / 2;
+            } else {
+                // Video is taller - crop top/bottom
+                sh = textureVideo.videoWidth / maskAspect;
+                sy = (textureVideo.videoHeight - sh) / 2;
+            }
+
+            // Draw camera frame
+            editCtx.drawImage(textureVideo, sx, sy, sw, sh, 0, 0, width, height);
+
+            // Apply mask alpha channel
+            const frameData = editCtx.getImageData(0, 0, width, height);
+            const framePixels = frameData.data;
+            const maskPixels = maskAlphaData.data;
+
+            for (let i = 0; i < framePixels.length; i += 4) {
+                // Copy alpha from mask to frame
+                framePixels[i + 3] = maskPixels[i + 3];
+            }
+
+            editCtx.putImageData(frameData, 0, 0);
+
+            textureAnimationId = requestAnimationFrame(renderTexturePreview);
+        }
+
+        function captureTexture() {
+            if (!textureStream || !editCtx) return;
+
+            // Stop the animation but keep the last frame
+            if (textureAnimationId) {
+                cancelAnimationFrame(textureAnimationId);
+                textureAnimationId = null;
+            }
+
+            // The current canvas content is our new texture
+            // Create a new image from it
+            const newImageUrl = editCanvas.toDataURL('image/png');
+            const newImg = new Image();
+            newImg.onload = () => {
+                // Update the mask image
+                maskImage = newImg;
+
+                // Stop camera
+                if (textureStream) {
+                    textureStream.getTracks().forEach(t => t.stop());
+                    textureStream = null;
+                }
+                if (textureVideo) {
+                    textureVideo.srcObject = null;
+                }
+
+                // Show anchor controls, hide texture controls
+                document.getElementById('anchorControls').classList.remove('hidden');
+                document.getElementById('textureControls').classList.add('hidden');
+
+                // Redraw with new texture
+                drawEditMask();
+
+                document.getElementById('editStatus').textContent = 'Texture captured! Save to keep changes.';
+            };
+            newImg.src = newImageUrl;
+        }
+
+        // ============================================
+        // MASK GALLERY
+        // ============================================
+
+        async function openGallery() {
+            document.getElementById('galleryOverlay').classList.remove('hidden');
+            stopTracking();
+
+            // Always reload manifest to get latest masks
+            await loadGalleryManifest();
+
+            renderGallery();
+        }
+
+        function closeGallery() {
+            document.getElementById('galleryOverlay').classList.add('hidden');
+            if (faceLandmarker) {
+                startTracking();
+            }
+        }
+
+        async function loadGalleryManifest() {
+            try {
+                // Try GitHub API first (no caching) if token available
+                const token = localStorage.getItem('github_token');
+                if (token) {
+                    const apiUrl = `https://api.github.com/repos/${GITHUB_REPO}/contents/durrell-masks/manifest.json`;
+                    const response = await fetch(apiUrl, {
+                        headers: {
+                            'Authorization': `token ${token}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        },
+                        cache: 'no-store'
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        galleryManifest = JSON.parse(atob(data.content));
+                        console.log('Loaded ' + galleryManifest.masks.length + ' masks via API');
+                        return;
+                    }
+                }
+
+                // Fallback to raw GitHub content
+                const rawUrl = `https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_BRANCH}/durrell-masks/manifest.json?t=${Date.now()}`;
+                const response = await fetch(rawUrl, {
+                    cache: 'no-store'
+                });
+                galleryManifest = await response.json();
+                console.log('Loaded ' + galleryManifest.masks.length + ' masks via raw');
+            } catch (error) {
+                console.error('Failed to load gallery manifest:', error);
+                // Fallback to local file if raw fetch fails
+                try {
+                    const localResponse = await fetch('durrell-masks/manifest.json?t=' + Date.now());
+                    galleryManifest = await localResponse.json();
+                } catch (e) {
+                    galleryManifest = { masks: [] };
+                }
+            }
+        }
+
+        function renderGallery() {
+            const grid = document.getElementById('galleryGrid');
+            const countEl = document.getElementById('maskCount');
+
+            if (!galleryManifest || galleryManifest.masks.length === 0) {
+                grid.innerHTML = '<div class="gallery-empty">No masks in gallery yet.<br>Create one and tap "Publish to Gallery"!</div>';
+                countEl.textContent = '(0)';
+                return;
+            }
+
+            countEl.textContent = '(' + galleryManifest.masks.length + ')';
+            grid.innerHTML = '';
+
+            galleryManifest.masks.forEach(mask => {
+                const item = document.createElement('div');
+                item.className = 'gallery-mask-item';
+                item.innerHTML = `
+                    <img src="${mask.image}" alt="${mask.name}">
+                    <button class="delete-btn" data-mask-id="${mask.id}">&times;</button>
+                `;
+
+                // Click on image selects the mask
+                item.querySelector('img').addEventListener('click', () => selectGalleryMask(mask));
+
+                // Click on delete button deletes the mask
+                item.querySelector('.delete-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteMask(mask);
+                });
+
+                grid.appendChild(item);
+            });
+        }
+
+        async function deleteMask(mask) {
+            // Confirm deletion
+            if (!confirm(`Delete "${mask.name}"?\n\nThis will permanently remove the mask from the gallery.`)) {
+                return;
+            }
+
+            const token = localStorage.getItem('github_token');
+            if (!token) {
+                alert('GitHub token required to delete masks');
+                return;
+            }
+
+            try {
+                // Show deleting status
+                const countEl = document.getElementById('maskCount');
+                countEl.textContent = '(deleting...)';
+
+                // Get the SHA of the image file to delete it
+                const imageResponse = await fetch(
+                    `https://api.github.com/repos/${GITHUB_REPO}/contents/${mask.image}`,
+                    { headers: { 'Authorization': `token ${token}` } }
+                );
+
+                if (imageResponse.ok) {
+                    const imageData = await imageResponse.json();
+
+                    // Delete the image file
+                    await fetch(
+                        `https://api.github.com/repos/${GITHUB_REPO}/contents/${mask.image}`,
+                        {
+                            method: 'DELETE',
+                            headers: {
+                                'Authorization': `token ${token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                message: `Delete mask: ${mask.name}`,
+                                sha: imageData.sha
+                            })
+                        }
+                    );
+                }
+
+                // Get current manifest and remove this mask
+                const manifestResponse = await fetch(
+                    `https://api.github.com/repos/${GITHUB_REPO}/contents/durrell-masks/manifest.json`,
+                    { headers: { 'Authorization': `token ${token}` } }
+                );
+                const manifestData = await manifestResponse.json();
+                const currentManifest = JSON.parse(atob(manifestData.content));
+
+                // Remove the mask from the array
+                currentManifest.masks = currentManifest.masks.filter(m => m.id !== mask.id);
+
+                // Update manifest on GitHub
+                await fetch(
+                    `https://api.github.com/repos/${GITHUB_REPO}/contents/durrell-masks/manifest.json`,
+                    {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `token ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            message: `Remove mask from gallery: ${mask.name}`,
+                            content: btoa(JSON.stringify(currentManifest, null, 2)),
+                            sha: manifestData.sha
+                        })
+                    }
+                );
+
+                // Reload gallery
+                await loadGalleryManifest();
+                renderGallery();
+
+            } catch (error) {
+                console.error('Failed to delete mask:', error);
+                alert('Failed to delete mask: ' + error.message);
+                renderGallery();
+            }
+        }
+
+        async function selectGalleryMask(maskData) {
+            return new Promise((resolve, reject) => {
+                try {
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+
+                    img.onload = () => {
+                        maskImage = img;
+                        loadedMask = {
+                            width: img.width,
+                            height: img.height,
+                            anchors: maskData.anchors
+                        };
+
+                        document.getElementById('clearMaskBtn').style.display = 'inline-block';
+                        document.getElementById('editMaskBtn').style.display = 'inline-block';
+
+                        // Only close gallery if it's open
+                        if (!document.getElementById('galleryOverlay').classList.contains('hidden')) {
+                            closeGallery();
+                        }
+
+                        resolve();
+                    };
+
+                    img.onerror = (err) => {
+                        debug('IMG ERROR: ' + maskData.image);
+                        reject(err);
+                    };
+
+                    img.src = maskData.image;
+
+                } catch (error) {
+                    debug('CATCH ERROR: ' + error.message);
+                    reject(error);
+                }
+            });
+        }
+
+        // ============================================
+        // PUBLISH TO GALLERY (Direct to GitHub)
+        // ============================================
+
+        function getGitHubToken() {
+            let token = localStorage.getItem('github_token');
+            if (!token) {
+                token = prompt(
+                    'Enter your GitHub Personal Access Token:\n\n' +
+                    '(Create one at github.com → Settings → Developer settings → Personal access tokens → Tokens (classic) → Generate new token → Select "repo" scope)'
+                );
+                if (token) {
+                    localStorage.setItem('github_token', token);
+                }
+            }
+            return token;
+        }
+
+        async function publishToGallery() {
+            if (!eyePoints.left || !eyePoints.right) {
+                updateStatus('capture', 'Please add eye points before publishing');
+                return;
+            }
+
+            const token = getGitHubToken();
+            if (!token) {
+                updateStatus('capture', 'GitHub token required to publish');
+                return;
+            }
+
+            const maskName = prompt('Enter a name for this mask:', 'My Mask');
+            if (!maskName) return;
+
+            updateStatus('capture', 'Publishing to GitHub...');
+
+            try {
+                // Redraw canvas WITHOUT markers
+                if (currentMaskData) {
+                    previewCtx.putImageData(currentMaskData, 0, 0);
+                }
+
+                // Generate a unique ID
+                const maskId = 'mask-' + Date.now();
+
+                // Get PNG as base64 (remove data URL prefix)
+                const imageDataUrl = previewCanvas.toDataURL('image/png');
+                const base64Image = imageDataUrl.replace(/^data:image\/png;base64,/, '');
+
+                // Create manifest entry with all anchors
+                const anchors = {
+                    leftEye: {
+                        x: eyePoints.left.x / previewCanvas.width,
+                        y: eyePoints.left.y / previewCanvas.height
+                    },
+                    rightEye: {
+                        x: eyePoints.right.x / previewCanvas.width,
+                        y: eyePoints.right.y / previewCanvas.height
+                    }
+                };
+                // Add mouth anchors if set
+                if (eyePoints.leftMouth) {
+                    anchors.leftMouth = {
+                        x: eyePoints.leftMouth.x / previewCanvas.width,
+                        y: eyePoints.leftMouth.y / previewCanvas.height
+                    };
+                }
+                if (eyePoints.rightMouth) {
+                    anchors.rightMouth = {
+                        x: eyePoints.rightMouth.x / previewCanvas.width,
+                        y: eyePoints.rightMouth.y / previewCanvas.height
+                    };
+                }
+
+                const manifestEntry = {
+                    id: maskId,
+                    name: maskName,
+                    image: `durrell-masks/images/${maskId}.png`,
+                    anchors: anchors
+                };
+
+                // 1. Upload the PNG image
+                await uploadToGitHub(
+                    token,
+                    `durrell-masks/images/${maskId}.png`,
+                    base64Image,
+                    `Add mask image: ${maskName}`
+                );
+
+                // 2. Get current manifest
+                const manifestResponse = await fetch(
+                    `https://api.github.com/repos/${GITHUB_REPO}/contents/durrell-masks/manifest.json`,
+                    { headers: { 'Authorization': `token ${token}` } }
+                );
+                const manifestData = await manifestResponse.json();
+                const currentManifest = JSON.parse(atob(manifestData.content));
+
+                // 3. Add new mask to manifest
+                currentManifest.masks.push(manifestEntry);
+
+                // 4. Update manifest
+                await uploadToGitHub(
+                    token,
+                    'durrell-masks/manifest.json',
+                    btoa(JSON.stringify(currentManifest, null, 2)),
+                    `Add mask to gallery: ${maskName}`,
+                    manifestData.sha
+                );
+
+                // Redraw markers
+                drawEyePointMarkers();
+
+                // Clear the gallery cache so it reloads
+                galleryManifest = null;
+
+                updateStatus('capture', `"${maskName}" published to gallery!`);
+
+            } catch (error) {
+                console.error('Publish error:', error);
+                drawEyePointMarkers();
+
+                if (error.message.includes('401')) {
+                    localStorage.removeItem('github_token');
+                    updateStatus('capture', 'Invalid token. Tap Publish to try again.');
+                } else {
+                    updateStatus('capture', 'Publish failed: ' + error.message);
+                }
+            }
+        }
+
+        // ============================================
+        // CREATE MASK TEXTURE MODE
+        // ============================================
+
+        let createTextureStream = null;
+        let createTextureVideo = null;
+        let createTextureAnimationId = null;
+        let createMaskAlphaData = null;
+
+        async function startCreateTextureMode() {
+            if (!currentMaskData) return;
+
+            try {
+                // Store the mask's alpha channel
+                createMaskAlphaData = new ImageData(
+                    new Uint8ClampedArray(currentMaskData.data),
+                    currentMaskData.width,
+                    currentMaskData.height
+                );
+
+                // Start rear camera
+                createTextureStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
+                    audio: false
+                });
+
+                createTextureVideo = document.createElement('video');
+                createTextureVideo.srcObject = createTextureStream;
+                createTextureVideo.setAttribute('playsinline', '');
+                await new Promise(r => createTextureVideo.onloadedmetadata = r);
+                await createTextureVideo.play();
+
+                // Update UI
+                document.getElementById('editControls').classList.add('hidden');
+                document.getElementById('pointsInfo').classList.add('hidden');
+                document.getElementById('toleranceRow').classList.add('hidden');
+
+                // Show texture controls (reuse capture controls area)
+                const captureControls = document.getElementById('captureControls');
+                captureControls.innerHTML = `
+                    <button class="control-btn" id="cancelCreateTextureBtn">Cancel</button>
+                    <button class="control-btn success" id="captureCreateTextureBtn">Capture Texture</button>
+                `;
+                captureControls.classList.remove('hidden');
+
+                document.getElementById('cancelCreateTextureBtn').addEventListener('click', stopCreateTextureMode);
+                document.getElementById('captureCreateTextureBtn').addEventListener('click', captureCreateTexture);
+
+                updateStatus('capture', 'Point camera at texture and tap Capture');
+
+                renderCreateTexturePreview();
+
+            } catch (error) {
+                console.error('Texture camera error:', error);
+                updateStatus('capture', 'Camera error: ' + error.message);
+            }
+        }
+
+        function stopCreateTextureMode() {
+            if (createTextureAnimationId) {
+                cancelAnimationFrame(createTextureAnimationId);
+                createTextureAnimationId = null;
+            }
+            if (createTextureStream) {
+                createTextureStream.getTracks().forEach(t => t.stop());
+                createTextureStream = null;
+            }
+            createTextureVideo = null;
+
+            // Restore UI
+            document.getElementById('captureControls').innerHTML = '<button class="control-btn primary" id="takePhotoBtn">Take Photo</button>';
+            document.getElementById('captureControls').classList.add('hidden');
+            document.getElementById('editControls').classList.remove('hidden');
+            document.getElementById('toleranceRow').classList.remove('hidden');
+
+            document.getElementById('takePhotoBtn').addEventListener('click', takePhoto);
+
+            // Redraw mask
+            if (currentMaskData) {
+                previewCtx.putImageData(currentMaskData, 0, 0);
+                drawEyePointMarkers();
+            }
+
+            updateStatus('capture', 'Texture cancelled');
+        }
+
+        function renderCreateTexturePreview() {
+            if (!createTextureStream || !createTextureVideo || !previewCtx) return;
+
+            const width = previewCanvas.width;
+            const height = previewCanvas.height;
+
+            previewCtx.clearRect(0, 0, width, height);
+
+            const videoAspect = createTextureVideo.videoWidth / createTextureVideo.videoHeight;
+            const maskAspect = width / height;
+
+            let sx = 0, sy = 0, sw = createTextureVideo.videoWidth, sh = createTextureVideo.videoHeight;
+
+            if (videoAspect > maskAspect) {
+                sw = createTextureVideo.videoHeight * maskAspect;
+                sx = (createTextureVideo.videoWidth - sw) / 2;
+            } else {
+                sh = createTextureVideo.videoWidth / maskAspect;
+                sy = (createTextureVideo.videoHeight - sh) / 2;
+            }
+
+            previewCtx.drawImage(createTextureVideo, sx, sy, sw, sh, 0, 0, width, height);
+
+            const frameData = previewCtx.getImageData(0, 0, width, height);
+            const framePixels = frameData.data;
+            const maskPixels = createMaskAlphaData.data;
+
+            for (let i = 0; i < framePixels.length; i += 4) {
+                framePixels[i + 3] = maskPixels[i + 3];
+            }
+
+            previewCtx.putImageData(frameData, 0, 0);
+
+            createTextureAnimationId = requestAnimationFrame(renderCreateTexturePreview);
+        }
+
+        function captureCreateTexture() {
+            if (createTextureAnimationId) {
+                cancelAnimationFrame(createTextureAnimationId);
+                createTextureAnimationId = null;
+            }
+
+            // Save current canvas as new mask data
+            currentMaskData = previewCtx.getImageData(0, 0, previewCanvas.width, previewCanvas.height);
+
+            // Stop camera
+            if (createTextureStream) {
+                createTextureStream.getTracks().forEach(t => t.stop());
+                createTextureStream = null;
+            }
+            createTextureVideo = null;
+
+            // Restore UI
+            document.getElementById('captureControls').innerHTML = '<button class="control-btn primary" id="takePhotoBtn">Take Photo</button>';
+            document.getElementById('captureControls').classList.add('hidden');
+            document.getElementById('editControls').classList.remove('hidden');
+            document.getElementById('toleranceRow').classList.remove('hidden');
+
+            document.getElementById('takePhotoBtn').addEventListener('click', takePhoto);
+
+            // Redraw with markers
+            drawEyePointMarkers();
+
+            updateStatus('capture', 'Texture captured! Add eye points and publish.');
+        }
+
+        async function uploadToGitHub(token, path, contentBase64, message, sha = null) {
+            const body = {
+                message: message,
+                content: contentBase64,
+                branch: GITHUB_BRANCH
+            };
+
+            if (sha) {
+                body.sha = sha;
+            }
+
+            const response = await fetch(
+                `https://api.github.com/repos/${GITHUB_REPO}/contents/${path}`,
+                {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(body)
+                }
+            );
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || response.status);
+            }
+
+            return response.json();
+        }
+
+        // ============================================
+        // CAPTURE / CREATE MASK
+        // ============================================
+
+        async function startCaptureCamera() {
+            try {
+                updateStatus('capture', 'Starting camera...');
+
+                captureStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
+                    audio: false
+                });
+
+                captureVideo = document.getElementById('captureVideo');
+                captureVideo.srcObject = captureStream;
+                await new Promise(r => captureVideo.onloadedmetadata = r);
+                await captureVideo.play();
+
+                // Show camera, hide preview
+                document.getElementById('captureCamera').classList.remove('hidden');
+                document.getElementById('capturePreview').classList.add('hidden');
+                document.getElementById('captureControls').classList.remove('hidden');
+                document.getElementById('editControls').classList.add('hidden');
+                document.getElementById('toleranceRow').classList.add('hidden');
+
+                updateStatus('capture', 'Point camera at your drawing and tap "Take Photo"');
+            } catch (error) {
+                console.error('Capture camera error:', error);
+                updateStatus('capture', 'Camera error: ' + error.message);
+            }
+        }
+
+        function stopCaptureCamera() {
+            if (captureStream) {
+                captureStream.getTracks().forEach(t => t.stop());
+                captureStream = null;
+            }
+            if (captureVideo) {
+                captureVideo.srcObject = null;
+            }
+        }
+
+        function takePhoto() {
+            if (!captureVideo) return;
+
+            previewCanvas = document.getElementById('previewCanvas');
+            previewCtx = previewCanvas.getContext('2d', { willReadFrequently: true });
+
+            // Set canvas to video dimensions
+            previewCanvas.width = captureVideo.videoWidth;
+            previewCanvas.height = captureVideo.videoHeight;
+
+            // Draw video frame to canvas
+            previewCtx.drawImage(captureVideo, 0, 0);
+
+            // Store original image data
+            originalImageData = previewCtx.getImageData(0, 0, previewCanvas.width, previewCanvas.height);
+
+            // Analyze paper color from edges
+            analyzePaper();
+
+            // Stop camera
+            stopCaptureCamera();
+
+            // Show preview, hide camera
+            document.getElementById('captureCamera').classList.add('hidden');
+            document.getElementById('capturePreview').classList.remove('hidden');
+            document.getElementById('captureControls').classList.add('hidden');
+            document.getElementById('editControls').classList.remove('hidden');
+            document.getElementById('toleranceRow').classList.remove('hidden');
+
+            // Run initial background removal
+            removeBackground();
+
+            updateStatus('capture', 'Drag slider to adjust cutout');
+        }
+
+        function retakePhoto() {
+            originalImageData = null;
+            currentMaskData = null;
+            eyePoints = { left: null, right: null, leftMouth: null, rightMouth: null };
+            eyePointMode = false;
+            document.getElementById('pointsInfo').classList.add('hidden');
+            document.getElementById('addPointsBtn').classList.remove('active');
+            startCaptureCamera();
+        }
+
+        // Cached paper color (computed once when photo taken)
+        let paperColor = null;
+
+        function analyzePaper() {
+            const width = originalImageData.width;
+            const height = originalImageData.height;
+            const srcData = originalImageData.data;
+
+            // Sample ALL edge pixels
+            let avgR = 0, avgG = 0, avgB = 0;
+            let count = 0;
+
+            // Top and bottom rows
+            for (let x = 0; x < width; x++) {
+                let idx = x * 4;
+                avgR += srcData[idx]; avgG += srcData[idx + 1]; avgB += srcData[idx + 2]; count++;
+                idx = ((height - 1) * width + x) * 4;
+                avgR += srcData[idx]; avgG += srcData[idx + 1]; avgB += srcData[idx + 2]; count++;
+            }
+            // Left and right columns
+            for (let y = 1; y < height - 1; y++) {
+                let idx = (y * width) * 4;
+                avgR += srcData[idx]; avgG += srcData[idx + 1]; avgB += srcData[idx + 2]; count++;
+                idx = (y * width + width - 1) * 4;
+                avgR += srcData[idx]; avgG += srcData[idx + 1]; avgB += srcData[idx + 2]; count++;
+            }
+
+            paperColor = {
+                r: Math.round(avgR / count),
+                g: Math.round(avgG / count),
+                b: Math.round(avgB / count)
+            };
+        }
+
+        function removeBackground() {
+            if (!originalImageData || !paperColor) return;
+
+            const tolerance = parseInt(document.getElementById('toleranceSlider').value);
+            const width = originalImageData.width;
+            const height = originalImageData.height;
+
+            // Do flood fill
+            const result = doFloodFillWithTolerance(
+                originalImageData.data, width, height,
+                paperColor.r, paperColor.g, paperColor.b, tolerance
+            );
+
+            const data = result.imageData.data;
+
+            // Sort blobs by size and keep only the biggest
+            const sortedBlobs = result.blobs.slice().sort((a, b) => b.size - a.size);
+            const biggestBlob = sortedBlobs[0];
+
+            // Remove all blobs except the biggest
+            let removed = 0;
+            result.blobs.forEach(blob => {
+                if (blob !== biggestBlob) {
+                    blob.pixelIndices.forEach(idx => {
+                        data[idx * 4 + 3] = 0;
+                    });
+                    removed++;
+                }
+            });
+
+            previewCtx.putImageData(result.imageData, 0, 0);
+            document.getElementById('saveMaskBtn').classList.remove('hidden');
+
+            // Save current state for later use (eye point markers)
+            currentMaskData = previewCtx.getImageData(0, 0, previewCanvas.width, previewCanvas.height);
+
+            const blobSize = biggestBlob ? biggestBlob.size : 0;
+            updateStatus('capture', `Kept largest blob (${blobSize} pixels), removed ${removed} others. Tap inside to cut holes.`);
+        }
+
+        function cutHoleAtPoint(canvasX, canvasY) {
+            if (!previewCanvas || !previewCtx) return;
+
+            const tolerance = parseInt(document.getElementById('toleranceSlider').value);
+            const imageData = previewCtx.getImageData(0, 0, previewCanvas.width, previewCanvas.height);
+            const data = imageData.data;
+            const width = previewCanvas.width;
+            const height = previewCanvas.height;
+
+            const startIdx = Math.floor(canvasY) * width + Math.floor(canvasX);
+            if (startIdx < 0 || startIdx >= width * height) return;
+
+            // Get the color at tap point
+            const tapR = data[startIdx * 4];
+            const tapG = data[startIdx * 4 + 1];
+            const tapB = data[startIdx * 4 + 2];
+            const tapA = data[startIdx * 4 + 3];
+
+            if (tapA === 0) {
+                updateStatus('capture', 'Tap on a visible area to cut a hole');
+                return;
+            }
+
+            // Flood fill from tap point, only filling pixels similar to tapped color
+            const visited = new Uint8Array(width * height);
+            const queue = [startIdx];
+            let head = 0;
+            let filledCount = 0;
+
+            while (head < queue.length) {
+                const idx = queue[head++];
+                if (visited[idx]) continue;
+                visited[idx] = 1;
+
+                // Skip transparent pixels
+                if (data[idx * 4 + 3] === 0) continue;
+
+                // Check color similarity to tapped color
+                const r = data[idx * 4];
+                const g = data[idx * 4 + 1];
+                const b = data[idx * 4 + 2];
+
+                if (colorDistance(r, g, b, tapR, tapG, tapB) > tolerance) continue;
+
+                // Make transparent
+                data[idx * 4 + 3] = 0;
+                filledCount++;
+
+                const x = idx % width;
+                const y = Math.floor(idx / width);
+
+                // Add neighbors
+                if (x > 0) queue.push(idx - 1);
+                if (x < width - 1) queue.push(idx + 1);
+                if (y > 0) queue.push(idx - width);
+                if (y < height - 1) queue.push(idx + width);
+            }
+
+            previewCtx.putImageData(imageData, 0, 0);
+
+            // Save current state for later use (eye point markers)
+            currentMaskData = previewCtx.getImageData(0, 0, previewCanvas.width, previewCanvas.height);
+
+            updateStatus('capture', `Cut hole (${filledCount} pixels). Tap again or Save.`);
+        }
+
+        function doFloodFillWithTolerance(srcData, width, height, avgR, avgG, avgB, tolerance) {
+            const imageData = new ImageData(
+                new Uint8ClampedArray(srcData),
+                width,
+                height
+            );
+            const data = imageData.data;
+
+            const visited = new Uint8Array(width * height);
+            const queue = [];
+            let head = 0;
+
+            // Add all edge pixels to queue
+            for (let x = 0; x < width; x++) {
+                queue.push(x);
+                queue.push((height - 1) * width + x);
+            }
+            for (let y = 1; y < height - 1; y++) {
+                queue.push(y * width);
+                queue.push(y * width + width - 1);
+            }
+
+            // Flood fill
+            let removedCount = 0;
+            while (head < queue.length) {
+                const idx = queue[head++];
+                if (visited[idx]) continue;
+                visited[idx] = 1;
+
+                const x = idx % width;
+                const y = Math.floor(idx / width);
+
+                const pixelIdx = idx * 4;
+                const r = data[pixelIdx];
+                const g = data[pixelIdx + 1];
+                const b = data[pixelIdx + 2];
+
+                if (colorDistance(r, g, b, avgR, avgG, avgB) <= tolerance) {
+                    data[pixelIdx + 3] = 0;
+                    removedCount++;
+
+                    if (x > 0 && !visited[idx - 1]) queue.push(idx - 1);
+                    if (x < width - 1 && !visited[idx + 1]) queue.push(idx + 1);
+                    if (y > 0 && !visited[idx - width]) queue.push(idx - width);
+                    if (y < height - 1 && !visited[idx + width]) queue.push(idx + width);
+                }
+            }
+
+            const opaqueCount = (width * height) - removedCount;
+
+            // Count connected blobs of opaque pixels
+            const blobInfo = countBlobs(data, width, height);
+
+            return { imageData, opaqueCount, removedCount, blobCount: blobInfo.count, blobs: blobInfo.blobs };
+        }
+
+        function countBlobs(data, width, height) {
+            const visited = new Uint8Array(width * height);
+            const blobMap = new Int32Array(width * height); // Which blob each pixel belongs to (-1 = none)
+            blobMap.fill(-1);
+            const blobs = [];
+            let blobCount = 0;
+
+            // Colors for visualizing blobs
+            const blobColors = [
+                [255, 0, 0],     // red
+                [0, 255, 0],     // green
+                [0, 0, 255],     // blue
+                [255, 255, 0],   // yellow
+                [255, 0, 255],   // magenta
+                [0, 255, 255],   // cyan
+                [255, 128, 0],   // orange
+                [128, 0, 255],   // purple
+                [0, 255, 128],   // spring green
+                [255, 0, 128],   // pink
+            ];
+
+            for (let startIdx = 0; startIdx < width * height; startIdx++) {
+                if (visited[startIdx]) continue;
+                if (data[startIdx * 4 + 3] === 0) {
+                    visited[startIdx] = 1;
+                    continue;
+                }
+
+                // Found a new blob
+                const blobId = blobCount;
+                blobCount++;
+                let blobSize = 0;
+                let minX = width, minY = height, maxX = 0, maxY = 0;
+                let touchesEdge = false;
+                const pixelIndices = [];
+
+                const queue = [startIdx];
+                let head = 0;
+
+                while (head < queue.length) {
+                    const idx = queue[head++];
+                    if (visited[idx]) continue;
+                    visited[idx] = 1;
+
+                    if (data[idx * 4 + 3] === 0) continue;
+
+                    blobSize++;
+                    blobMap[idx] = blobId;
+                    pixelIndices.push(idx);
+
+                    const x = idx % width;
+                    const y = Math.floor(idx / width);
+
+                    // Check if touches edge
+                    if (x === 0 || x === width - 1 || y === 0 || y === height - 1) {
+                        touchesEdge = true;
+                    }
+
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+
+                    if (x > 0 && !visited[idx - 1]) queue.push(idx - 1);
+                    if (x < width - 1 && !visited[idx + 1]) queue.push(idx + 1);
+                    if (y > 0 && !visited[idx - width]) queue.push(idx - width);
+                    if (y < height - 1 && !visited[idx + width]) queue.push(idx + width);
+                }
+
+                blobs.push({
+                    id: blobId,
+                    size: blobSize,
+                    touchesEdge,
+                    pixelIndices,
+                    bounds: { minX, minY, maxX, maxY, width: maxX - minX, height: maxY - minY },
+                    color: blobColors[blobId % blobColors.length]
+                });
+            }
+
+            // Sort blobs by size (largest first)
+            blobs.sort((a, b) => b.size - a.size);
+
+            return { count: blobCount, blobs, blobMap };
+        }
+
+        function colorizeBlobs(data, blobs) {
+            // Color each blob with its assigned color (for visualization)
+            blobs.forEach(blob => {
+                const [r, g, b] = blob.color;
+                blob.pixelIndices.forEach(idx => {
+                    data[idx * 4] = r;
+                    data[idx * 4 + 1] = g;
+                    data[idx * 4 + 2] = b;
+                });
+            });
+        }
+
+        function removeEdgeBlobs(data, blobs) {
+            // Remove any blob that touches the edge
+            let removedCount = 0;
+            blobs.forEach(blob => {
+                if (blob.touchesEdge) {
+                    blob.pixelIndices.forEach(idx => {
+                        data[idx * 4 + 3] = 0; // Make transparent
+                    });
+                    removedCount++;
+                }
+            });
+            return removedCount;
+        }
+
+        function sampleBackgroundColor(data, width, height) {
+            // Sample from corners
+            const samples = [];
+            const cornerSize = Math.min(20, Math.floor(width / 10), Math.floor(height / 10));
+
+            // Top-left corner
+            for (let y = 0; y < cornerSize; y++) {
+                for (let x = 0; x < cornerSize; x++) {
+                    const idx = (y * width + x) * 4;
+                    samples.push({ r: data[idx], g: data[idx + 1], b: data[idx + 2] });
+                }
+            }
+
+            // Top-right corner
+            for (let y = 0; y < cornerSize; y++) {
+                for (let x = width - cornerSize; x < width; x++) {
+                    const idx = (y * width + x) * 4;
+                    samples.push({ r: data[idx], g: data[idx + 1], b: data[idx + 2] });
+                }
+            }
+
+            // Bottom-left corner
+            for (let y = height - cornerSize; y < height; y++) {
+                for (let x = 0; x < cornerSize; x++) {
+                    const idx = (y * width + x) * 4;
+                    samples.push({ r: data[idx], g: data[idx + 1], b: data[idx + 2] });
+                }
+            }
+
+            // Bottom-right corner
+            for (let y = height - cornerSize; y < height; y++) {
+                for (let x = width - cornerSize; x < width; x++) {
+                    const idx = (y * width + x) * 4;
+                    samples.push({ r: data[idx], g: data[idx + 1], b: data[idx + 2] });
+                }
+            }
+
+            // Average the samples
+            const avg = { r: 0, g: 0, b: 0 };
+            samples.forEach(s => {
+                avg.r += s.r;
+                avg.g += s.g;
+                avg.b += s.b;
+            });
+            avg.r = Math.round(avg.r / samples.length);
+            avg.g = Math.round(avg.g / samples.length);
+            avg.b = Math.round(avg.b / samples.length);
+
+            return avg;
+        }
+
+        function colorDistance(r1, g1, b1, r2, g2, b2) {
+            // Simple Euclidean distance in RGB space
+            return Math.sqrt(
+                Math.pow(r1 - r2, 2) +
+                Math.pow(g1 - g2, 2) +
+                Math.pow(b1 - b2, 2)
+            );
+        }
+
+        function saveMask() {
+            // Redraw canvas WITHOUT markers before saving
+            if (currentMaskData) {
+                previewCtx.putImageData(currentMaskData, 0, 0);
+            }
+
+            // Convert canvas to data URL (clean, no markers)
+            const dataUrl = previewCanvas.toDataURL('image/png');
+
+            // Create mask data object with image and anchor points
+            const maskData = {
+                version: 1,
+                image: dataUrl,
+                width: previewCanvas.width,
+                height: previewCanvas.height,
+                anchors: {}
+            };
+
+            // Add eye points if they exist (normalized 0-1 coordinates)
+            if (eyePoints.left) {
+                maskData.anchors.leftEye = {
+                    x: eyePoints.left.x / previewCanvas.width,
+                    y: eyePoints.left.y / previewCanvas.height
+                };
+            }
+            if (eyePoints.right) {
+                maskData.anchors.rightEye = {
+                    x: eyePoints.right.x / previewCanvas.width,
+                    y: eyePoints.right.y / previewCanvas.height
+                };
+            }
+            // Add mouth points if they exist
+            if (eyePoints.leftMouth) {
+                maskData.anchors.leftMouth = {
+                    x: eyePoints.leftMouth.x / previewCanvas.width,
+                    y: eyePoints.leftMouth.y / previewCanvas.height
+                };
+            }
+            if (eyePoints.rightMouth) {
+                maskData.anchors.rightMouth = {
+                    x: eyePoints.rightMouth.x / previewCanvas.width,
+                    y: eyePoints.rightMouth.y / previewCanvas.height
+                };
+            }
+
+            // Download as JSON file
+            const jsonStr = JSON.stringify(maskData, null, 2);
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const link = document.createElement('a');
+            link.download = 'mask-' + Date.now() + '.json';
+            link.href = URL.createObjectURL(blob);
+            link.click();
+            URL.revokeObjectURL(link.href);
+
+            // Redraw markers for continued editing
+            drawEyePointMarkers();
+
+            const hasEyes = eyePoints.left && eyePoints.right;
+            const hasMouth = eyePoints.leftMouth && eyePoints.rightMouth;
+            let msg = 'Mask saved!';
+            if (hasEyes && hasMouth) msg = 'Mask saved with eye + mouth anchors!';
+            else if (hasEyes) msg = 'Mask saved with eye anchors!';
+            updateStatus('capture', msg);
+        }
+
+        // ============================================
+        // EYE POINT PLACEMENT
+        // ============================================
+
+        function enterEyePointMode() {
+            eyePointMode = true;
+            eyePoints = { left: null, right: null, leftMouth: null, rightMouth: null };
+            document.getElementById('pointsInfo').classList.remove('hidden');
+            document.getElementById('addPointsBtn').classList.add('active');
+            updatePointsStatus();
+            drawEyePointMarkers();
+        }
+
+        function exitEyePointMode() {
+            eyePointMode = false;
+            document.getElementById('pointsInfo').classList.add('hidden');
+            document.getElementById('addPointsBtn').classList.remove('active');
+        }
+
+        function clearEyePoints() {
+            eyePoints = { left: null, right: null, leftMouth: null, rightMouth: null };
+            updatePointsStatus();
+            drawEyePointMarkers();
+        }
+
+        function updatePointsStatus() {
+            const status = document.getElementById('pointsStatus');
+            if (!eyePoints.left) {
+                status.textContent = 'Tap LEFT side for left eye';
+            } else if (!eyePoints.right) {
+                status.textContent = 'Tap RIGHT side for right eye';
+            } else if (!eyePoints.leftMouth) {
+                status.textContent = 'Tap LEFT mouth corner (optional, or Save)';
+            } else if (!eyePoints.rightMouth) {
+                status.textContent = 'Tap RIGHT mouth corner';
+            } else {
+                status.textContent = 'All points placed! Save or clear to redo.';
+            }
+        }
+
+        function placeEyePoint(canvasX, canvasY) {
+            if (!eyePoints.left) {
+                eyePoints.left = { x: canvasX, y: canvasY };
+            } else if (!eyePoints.right) {
+                eyePoints.right = { x: canvasX, y: canvasY };
+            } else if (!eyePoints.leftMouth) {
+                eyePoints.leftMouth = { x: canvasX, y: canvasY };
+            } else if (!eyePoints.rightMouth) {
+                eyePoints.rightMouth = { x: canvasX, y: canvasY };
+            }
+            // If all are placed, do nothing (user must clear first)
+            updatePointsStatus();
+            drawEyePointMarkers();
+        }
+
+        function drawEyePointMarkers() {
+            if (!previewCanvas || !previewCtx || !currentMaskData) return;
+
+            // Redraw the current mask state (preserves hole cuts)
+            previewCtx.putImageData(currentMaskData, 0, 0);
+
+            // Draw eye point markers (green)
+            if (eyePoints.left) {
+                drawMarker(eyePoints.left.x, eyePoints.left.y, '#00ff00', 'LE');
+            }
+            if (eyePoints.right) {
+                drawMarker(eyePoints.right.x, eyePoints.right.y, '#00ff00', 'RE');
+            }
+            // Draw mouth point markers (orange)
+            if (eyePoints.leftMouth) {
+                drawMarker(eyePoints.leftMouth.x, eyePoints.leftMouth.y, '#ff9900', 'LM');
+            }
+            if (eyePoints.rightMouth) {
+                drawMarker(eyePoints.rightMouth.x, eyePoints.rightMouth.y, '#ff9900', 'RM');
+            }
+        }
+
+        function drawMarker(x, y, color, label) {
+            const radius = Math.max(15, previewCanvas.width * 0.02);
+
+            // Outer circle
+            previewCtx.strokeStyle = color;
+            previewCtx.lineWidth = 3;
+            previewCtx.beginPath();
+            previewCtx.arc(x, y, radius, 0, Math.PI * 2);
+            previewCtx.stroke();
+
+            // Inner dot
+            previewCtx.fillStyle = color;
+            previewCtx.beginPath();
+            previewCtx.arc(x, y, 4, 0, Math.PI * 2);
+            previewCtx.fill();
+
+            // Crosshairs
+            previewCtx.beginPath();
+            previewCtx.moveTo(x - radius - 5, y);
+            previewCtx.lineTo(x - radius + 8, y);
+            previewCtx.moveTo(x + radius - 8, y);
+            previewCtx.lineTo(x + radius + 5, y);
+            previewCtx.moveTo(x, y - radius - 5);
+            previewCtx.lineTo(x, y - radius + 8);
+            previewCtx.moveTo(x, y + radius - 8);
+            previewCtx.lineTo(x, y + radius + 5);
+            previewCtx.stroke();
+
+            // Label
+            previewCtx.font = `bold ${radius}px sans-serif`;
+            previewCtx.fillStyle = color;
+            previewCtx.textAlign = 'center';
+            previewCtx.textBaseline = 'middle';
+            previewCtx.fillText(label, x, y + radius + 15);
+        }
+
+        // Tolerance slider - live update as you drag
+        document.getElementById('toleranceSlider').addEventListener('input', (e) => {
+            document.getElementById('toleranceValue').textContent = e.target.value;
+            if (originalImageData && paperColor) {
+                removeBackground();
+                // Redraw eye point markers if any
+                if (eyePoints.left) {
+                    drawMarker(eyePoints.left.x, eyePoints.left.y, '#00ff00', 'L');
+                }
+                if (eyePoints.right) {
+                    drawMarker(eyePoints.right.x, eyePoints.right.y, '#00ff00', 'R');
+                }
+            }
+        });
+
+        // ============================================
+        // UI HELPERS
+        // ============================================
+
+        function updateStatus(view, message) {
+            document.getElementById(view + 'Status').textContent = message;
+        }
+
+        function showLoading(text) {
+            document.getElementById('loadingText').textContent = text || 'Loading...';
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').classList.add('hidden');
+        }
+
+        // ============================================
+        // EVENT HANDLERS
+        // ============================================
+
+        document.getElementById('loadMaskInput').addEventListener('change', (e) => {
+            if (e.target.files && e.target.files[0]) {
+                loadMaskFile(e.target.files[0]);
+            }
+        });
+
+        document.getElementById('clearMaskBtn').addEventListener('click', clearLoadedMask);
+
+        // Gallery
+        document.getElementById('galleryBtn').addEventListener('click', openGallery);
+        document.getElementById('closeGalleryBtn').addEventListener('click', closeGallery);
+
+        // Publish
+        document.getElementById('publishBtn').addEventListener('click', publishToGallery);
+
+        // Edit Mask event handlers
+        document.getElementById('editMaskBtn').addEventListener('click', openEditMask);
+        document.getElementById('closeEditBtn').addEventListener('click', closeEditMask);
+        document.getElementById('resetPointsBtn').addEventListener('click', resetEditAnchors);
+
+        document.querySelectorAll('.anchor-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                currentEditAnchor = btn.dataset.anchor;
+                updateAnchorButtons();
+                drawEditMask();
+            });
+        });
+
+        document.getElementById('editMaskCanvas').addEventListener('click', (e) => {
+            // Don't place anchors in texture mode
+            if (textureStream) return;
+
+            const canvas = e.target;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const canvasX = (e.clientX - rect.left) * scaleX;
+            const canvasY = (e.clientY - rect.top) * scaleY;
+            placeEditAnchor(canvasX, canvasY);
+        });
+
+        // Texture mode buttons
+        document.getElementById('textureBtn').addEventListener('click', startTextureMode);
+        document.getElementById('cancelTextureBtn').addEventListener('click', stopTextureMode);
+        document.getElementById('captureTextureBtn').addEventListener('click', captureTexture);
+        document.getElementById('publishEditBtn').addEventListener('click', publishFromEditMask);
+
+        // Create mask texture
+        document.getElementById('createTextureBtn').addEventListener('click', startCreateTextureMode);
+
+        document.getElementById('takePhotoBtn').addEventListener('click', takePhoto);
+        document.getElementById('retakeBtn').addEventListener('click', retakePhoto);
+        document.getElementById('saveMaskBtn').addEventListener('click', saveMask);
+
+        // Tap on preview canvas - either cut holes or place eye points
+        document.getElementById('previewCanvas').addEventListener('click', (e) => {
+            const canvas = e.target;
+            const rect = canvas.getBoundingClientRect();
+
+            // Convert click position to canvas coordinates
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const canvasX = (e.clientX - rect.left) * scaleX;
+            const canvasY = (e.clientY - rect.top) * scaleY;
+
+            if (eyePointMode) {
+                placeEyePoint(canvasX, canvasY);
+            } else {
+                cutHoleAtPoint(canvasX, canvasY);
+            }
+        });
+
+        // Add Eye Points button
+        document.getElementById('addPointsBtn').addEventListener('click', () => {
+            if (eyePointMode) {
+                exitEyePointMode();
+            } else {
+                enterEyePointMode();
+            }
+        });
+
+        // Clear Points button
+        document.getElementById('clearPointsBtn').addEventListener('click', clearEyePoints);
+
+        window.addEventListener('resize', () => {
+            if (trackCanvas && isTracking) resizeTrackCanvas();
+        });
+
+        // Gear button toggles UI visibility
+        document.getElementById('gearBtn').addEventListener('click', () => {
+            document.querySelector('.container').classList.toggle('ui-hidden');
+        });
+
+        // Debug helper
+        function debug(msg) {
+            const el = document.getElementById('debugInfo');
+            el.innerHTML = msg + '<br>' + el.innerHTML;
+            if (el.innerHTML.length > 500) el.innerHTML = el.innerHTML.substring(0, 500);
+        }
+
+        // Tap on screen to go to next mask (only when UI is hidden)
+        document.getElementById('tapOverlay').addEventListener('click', async (e) => {
+            debug('TAP detected');
+
+            // Only cycle masks when UI is hidden (full screen mode)
+            const isHidden = document.querySelector('.container').classList.contains('ui-hidden');
+            debug('UI hidden: ' + isHidden);
+            if (!isHidden) return;
+
+            debug('Gallery: ' + (galleryManifest ? galleryManifest.masks.length + ' masks' : 'null'));
+
+            if (!galleryManifest || galleryManifest.masks.length === 0) {
+                debug('Loading gallery...');
+                await loadGalleryManifest();
+            }
+
+            if (!galleryManifest || galleryManifest.masks.length === 0) {
+                debug('No masks available');
+                return;
+            }
+
+            // Go to next mask, loop back to start
+            const oldIndex = currentMaskIndex;
+            currentMaskIndex = (currentMaskIndex + 1) % galleryManifest.masks.length;
+            debug('Index: ' + oldIndex + ' -> ' + currentMaskIndex);
+
+            const mask = galleryManifest.masks[currentMaskIndex];
+            debug('Loading: ' + (mask ? mask.name : 'undefined'));
+            try {
+                await selectGalleryMask(mask);
+                debug('Done loading');
+            } catch (err) {
+                debug('LOAD FAILED: ' + err);
+            }
+        });
+
+        // Load a random mask from the gallery
+        async function loadRandomMask() {
+            try {
+                await loadGalleryManifest();
+                if (galleryManifest && galleryManifest.masks.length > 0) {
+                    currentMaskIndex = Math.floor(Math.random() * galleryManifest.masks.length);
+                    const randomMask = galleryManifest.masks[currentMaskIndex];
+                    await selectGalleryMask(randomMask);
+                }
+            } catch (error) {
+                console.error('Failed to load random mask:', error);
+            }
+        }
+
+        // ============================================
+        // INITIALIZATION
+        // ============================================
+
+        window.addEventListener('load', async () => {
+            showLoading('Loading face detection...');
+
+            try {
+                await initializeFaceLandmarker();
+                // Load a random mask after initialization
+                await loadRandomMask();
+            } catch (error) {
+                console.error('Initialization error:', error);
+                updateStatus('track', 'Error loading: ' + error.message);
+                hideLoading();
+            }
+        });
+    </script>
+</body>
+</html>
