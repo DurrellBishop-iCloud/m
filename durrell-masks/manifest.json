@@ -1,4 +1,20 @@
 {
   "version": 1,
-  "masks": []
+  "masks": [
+    {
+      "id": "mask-1769106784318",
+      "name": "My Mask",
+      "image": "durrell-masks/images/mask-1769106784318.png",
+      "anchors": {
+        "leftEye": {
+          "x": 0.41044776119402987,
+          "y": 0.5569111023656479
+        },
+        "rightEye": {
+          "x": 0.5945273631840797,
+          "y": 0.5527132799860073
+        }
+      }
+    }
+  ]
 }
