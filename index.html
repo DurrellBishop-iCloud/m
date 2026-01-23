@@ -42,11 +42,32 @@
         .header-bar {
             background: #0f0f1a;
             padding: 8px 16px;
-            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             font-size: 14px;
+            border-bottom: 1px solid #1a1a2e;
+        }
+
+        .header-bar .group-name {
             color: #e94560;
             font-weight: 600;
-            border-bottom: 1px solid #1a1a2e;
+            cursor: pointer;
+        }
+
+        .header-bar .make-mask-btn {
+            background: none;
+            border: 1px solid #e94560;
+            color: #e94560;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .header-bar .make-mask-btn:active {
+            background: #e94560;
+            color: white;
         }
 
         /* View containers */
@@ -494,27 +515,6 @@
             z-index: 1000;
         }
 
-        .gear-btn {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            background: rgba(0,0,0,0.5);
-            border: none;
-            cursor: pointer;
-            z-index: 1001;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-        }
-
-        .gear-btn:active {
-            background: rgba(0,0,0,0.7);
-        }
-
         /* Save Modal */
         .modal-overlay {
             position: fixed;
@@ -614,8 +614,6 @@
     </style>
 </head>
 <body>
-    <button class="gear-btn" id="gearBtn">&#9881;</button>
-
     <!-- Save Modal -->
     <div class="modal-overlay hidden" id="saveModal">
         <div class="modal">
@@ -681,8 +679,11 @@
     <div class="version-tag">v5.1-mouth</div>
     <div id="debugInfo" style="display:none;position:fixed;bottom:10px;left:10px;background:rgba(0,0,0,0.8);color:#0f0;font-family:monospace;font-size:12px;padding:10px;z-index:9999;max-width:90%;"></div>
     <div class="container">
-        <!-- Header showing current group -->
-        <div class="header-bar" id="headerBar">Public Masks</div>
+        <!-- Header showing current group and make mask button -->
+        <div class="header-bar" id="headerBar">
+            <span class="group-name" id="groupNameHeader">Public Masks</span>
+            <button class="make-mask-btn" id="makeMaskBtn">Make Mask</button>
+        </div>
 
         <!-- Face Tracking View -->
         <div class="view active" id="trackView">
@@ -855,18 +856,23 @@
 
         // Update header bar with group name
         function updateHeader() {
-            const header = document.getElementById('headerBar');
+            const groupNameEl = document.getElementById('groupNameHeader');
             if (currentGroup === 'public') {
-                header.textContent = 'Public Masks';
+                groupNameEl.textContent = 'Public Masks';
             } else if (currentGroup === 'local') {
-                header.textContent = 'Local Masks';
+                groupNameEl.textContent = 'Local Masks';
             } else {
                 // Capitalize first letter and format nicely
                 const displayName = currentGroup.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-                header.textContent = displayName;
+                groupNameEl.textContent = displayName;
             }
         }
         updateHeader();
+
+        // Make Mask button - go to capture view
+        document.getElementById('makeMaskBtn').addEventListener('click', () => {
+            switchView('capture');
+        });
 
         // Legacy constants (kept for compatibility)
         const GITHUB_REPO = 'DurrellBishop-iCloud/m';
@@ -1290,7 +1296,6 @@
 
             // Show overlay
             document.getElementById('editMaskOverlay').classList.remove('hidden');
-            document.getElementById('gearBtn').style.display = 'none';
 
             // Set initial anchor selection
             currentEditAnchor = 'leftEye';
@@ -1310,7 +1315,6 @@
             }
 
             document.getElementById('editMaskOverlay').classList.add('hidden');
-            document.getElementById('gearBtn').style.display = 'flex';
             // Restart tracking
             if (faceLandmarker) {
                 startTracking();
@@ -1664,7 +1668,6 @@
 
         async function openGallery() {
             document.getElementById('galleryOverlay').classList.remove('hidden');
-            document.getElementById('gearBtn').style.display = 'none';
             stopTracking();
 
             // Always reload manifest to get latest masks
@@ -1675,7 +1678,6 @@
 
         function closeGallery() {
             document.getElementById('galleryOverlay').classList.add('hidden');
-            document.getElementById('gearBtn').style.display = 'flex';
             if (faceLandmarker) {
                 startTracking();
             }
@@ -3174,8 +3176,8 @@
             window.location.href = `?group=${groupName}#capture`;
         }
 
-        // Gear button shows group menu
-        document.getElementById('gearBtn').addEventListener('click', showGroupMenu);
+        // Group name in header shows group menu when clicked
+        document.getElementById('groupNameHeader').addEventListener('click', showGroupMenu);
 
         document.getElementById('groupCloseBtn').addEventListener('click', hideGroupMenu);
 
