@@ -3218,8 +3218,14 @@
             hideGroupMenu();
             saveGroupToStorage(groupName);
             setLastGroup(groupName);
-            // Reload with new group and go to capture view
-            window.location.href = `?group=${groupName}#capture`;
+
+            // If already on this group, just switch view directly
+            if (currentGroup === groupName) {
+                switchView('capture');
+            } else {
+                // Reload with new group and go to capture view
+                window.location.href = `?group=${groupName}#capture`;
+            }
         }
 
         // Group name in header shows group menu when clicked
