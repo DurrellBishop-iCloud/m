@@ -690,25 +690,21 @@
             </p>
 
             <button class="modal-btn" id="publicGroupBtn">
-                <span class="icon">⭐</span>
-                Starter Masks
+                Public Masks
             </button>
 
             <button class="modal-btn" id="localGroupBtn">
-                <span class="icon">📱</span>
-                Local
+                Local Masks
             </button>
 
             <button class="modal-btn" id="newGroupBtn">
-                <span class="icon">✨</span>
-                New Group
+                New Mask Group
             </button>
 
             <div id="savedGroupsList"></div>
 
             <div class="modal-divider" id="shareSection" style="display:none;"></div>
             <button class="modal-btn" id="shareGroupBtn" style="display:none;">
-                <span class="icon">📤</span>
                 Share This Group
             </button>
 
@@ -3182,9 +3178,9 @@
 
             // Show current group name
             if (currentGroup === 'public') {
-                groupDisplay.textContent = 'Starter Masks';
+                groupDisplay.textContent = 'Public Masks';
             } else if (currentGroup === 'local') {
-                groupDisplay.textContent = 'Local';
+                groupDisplay.textContent = 'Local Masks';
             } else {
                 groupDisplay.textContent = currentGroup;
             }
@@ -3207,7 +3203,6 @@
             if (groups.length > 0) {
                 savedGroupsList.innerHTML = groups.map(g => `
                     <button class="modal-btn ${currentGroup === g ? 'selected' : ''}" data-group="${g}">
-                        <span class="icon">👥</span>
                         ${g}
                     </button>
                 `).join('');
