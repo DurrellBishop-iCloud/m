@@ -9,6 +9,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>Durrell Masks</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -532,10 +533,175 @@
         .ui-hidden .version-tag {
             display: none !important;
         }
+
+        /* Save Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        .modal-overlay.hidden {
+            display: none;
+        }
+        .modal {
+            background: #1a1a2e;
+            border-radius: 16px;
+            padding: 20px;
+            width: 90%;
+            max-width: 320px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal h3 {
+            margin: 0 0 16px 0;
+            font-size: 18px;
+            text-align: center;
+        }
+        .modal-btn {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            padding: 14px 16px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 12px;
+            background: #16213e;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            text-align: left;
+        }
+        .modal-btn:active {
+            background: #0f3460;
+        }
+        .modal-btn.primary {
+            background: #e94560;
+        }
+        .modal-btn .icon {
+            font-size: 24px;
+            margin-right: 12px;
+        }
+        .modal-btn.selected {
+            background: #e94560;
+        }
+        .modal-divider {
+            height: 1px;
+            background: #333;
+            margin: 16px 0;
+        }
+        .modal-cancel {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin-top: 12px;
+            border: 1px solid #444;
+            border-radius: 12px;
+            background: transparent;
+            color: #888;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .group-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .qr-code {
+            display: flex;
+            justify-content: center;
+            margin: 16px 0;
+        }
+        .qr-code canvas {
+            border-radius: 8px;
+        }
+        .share-url {
+            background: #0f0f1a;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+            text-align: center;
+            margin: 12px 0;
+        }
     </style>
 </head>
 <body>
     <button class="gear-btn" id="gearBtn">&#9881;</button>
+
+    <!-- Save Modal -->
+    <div class="modal-overlay hidden" id="saveModal">
+        <div class="modal">
+            <h3>Save Your Mask</h3>
+            <button class="modal-btn" id="saveToPhoneBtn">
+                <span class="icon">📱</span>
+                Save to My Phone
+            </button>
+            <div class="modal-divider"></div>
+            <button class="modal-btn" id="saveToGroupBtn">
+                <span class="icon">👥</span>
+                Save to Share Group
+            </button>
+            <div class="group-list" id="groupList"></div>
+            <button class="modal-cancel" id="saveCancelBtn">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Share Group Modal -->
+    <div class="modal-overlay hidden" id="shareModal">
+        <div class="modal">
+            <h3>Share This Group</h3>
+            <p style="text-align:center;color:#888;margin:0 0 12px 0;">Scan or share this link:</p>
+            <div class="qr-code" id="qrCode"></div>
+            <div class="share-url" id="shareUrl"></div>
+            <button class="modal-btn primary" id="copyLinkBtn">
+                <span class="icon">📋</span>
+                Copy Link
+            </button>
+            <button class="modal-btn" id="shareLinkBtn">
+                <span class="icon">📤</span>
+                Share...
+            </button>
+            <button class="modal-cancel" id="shareCancelBtn">Close</button>
+        </div>
+    </div>
+
+    <!-- Group Picker Modal -->
+    <div class="modal-overlay hidden" id="groupPickerModal">
+        <div class="modal">
+            <h3>Choose a Group</h3>
+            <div class="group-list" id="groupPickerList"></div>
+            <button class="modal-cancel" id="groupPickerCancelBtn">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Settings Menu Modal -->
+    <div class="modal-overlay hidden" id="settingsModal">
+        <div class="modal">
+            <h3>Settings</h3>
+            <p style="text-align:center;color:#e94560;margin-bottom:16px;">Group: <span id="currentGroupDisplay"></span></p>
+            <button class="modal-btn" id="changeGroupBtn">
+                <span class="icon">📁</span>
+                Change Group
+            </button>
+            <button class="modal-btn" id="shareGroupBtn">
+                <span class="icon">📤</span>
+                Share Group
+            </button>
+            <div class="modal-divider"></div>
+            <button class="modal-btn" id="toggleUiBtn">
+                <span class="icon">👁️</span>
+                Toggle UI
+            </button>
+            <button class="modal-cancel" id="settingsCancelBtn">Close</button>
+        </div>
+    </div>
     <div class="version-tag">v5.1-mouth</div>
     <div id="debugInfo" style="display:none;position:fixed;bottom:10px;left:10px;background:rgba(0,0,0,0.8);color:#0f0;font-family:monospace;font-size:12px;padding:10px;z-index:9999;max-width:90%;"></div>
     <div class="container ui-hidden">
@@ -598,7 +764,7 @@
                     <div class="edit-actions">
                         <button class="control-btn" id="resetPointsBtn">Reset All</button>
                         <button class="control-btn" id="textureBtn">Change Texture</button>
-                        <button class="control-btn primary" id="publishEditBtn">Publish</button>
+                        <button class="control-btn primary" id="saveEditBtn">Save</button>
                     </div>
                 </div>
                 <div class="edit-controls hidden" id="textureControls">
@@ -639,7 +805,7 @@
                 <button class="control-btn" id="addPointsBtn">Add Anchors</button>
                 <button class="control-btn" id="createTextureBtn">Change Texture</button>
                 <button class="control-btn success" id="saveMaskBtn">Save</button>
-                <button class="control-btn primary" id="publishBtn">Publish</button>
+                <button class="control-btn primary" id="saveBtn">Save</button>
             </div>
 
             <div class="points-info hidden" id="pointsInfo">
@@ -1569,7 +1735,7 @@
             const countEl = document.getElementById('maskCount');
 
             if (!galleryManifest || galleryManifest.masks.length === 0) {
-                grid.innerHTML = '<div class="gallery-empty">No masks in gallery yet.<br>Create one and tap "Publish to Gallery"!</div>';
+                grid.innerHTML = '<div class="gallery-empty">No masks in this group yet.<br>Create one and tap "Save"!</div>';
                 countEl.textContent = '(0)';
                 return;
             }
@@ -2618,6 +2784,250 @@
         }
 
         // ============================================
+        // GROUP MANAGEMENT & SAVE MODAL
+        // ============================================
+
+        // Get/save groups from localStorage
+        function getSavedGroups() {
+            const saved = localStorage.getItem('mask_groups');
+            return saved ? JSON.parse(saved) : [];
+        }
+
+        function saveGroupToStorage(groupName) {
+            const groups = getSavedGroups();
+            if (!groups.includes(groupName) && groupName !== 'default') {
+                groups.push(groupName);
+                localStorage.setItem('mask_groups', JSON.stringify(groups));
+            }
+        }
+
+        function getLastGroup() {
+            return localStorage.getItem('mask_last_group') || 'default';
+        }
+
+        function setLastGroup(groupName) {
+            localStorage.setItem('mask_last_group', groupName);
+        }
+
+        // Show save modal
+        function showSaveModal() {
+            if (!eyePoints.left || !eyePoints.right) {
+                updateStatus('capture', 'Please add eye points before saving');
+                return;
+            }
+
+            const modal = document.getElementById('saveModal');
+            const groupList = document.getElementById('groupList');
+            const groups = getSavedGroups();
+
+            // Build group list
+            if (groups.length > 0) {
+                groupList.innerHTML = groups.map(g => `
+                    <button class="modal-btn" data-group="${g}">
+                        <span class="icon">📁</span>
+                        ${g}
+                    </button>
+                `).join('');
+
+                // Add click handlers
+                groupList.querySelectorAll('[data-group]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        saveToGroup(btn.dataset.group);
+                    });
+                });
+            } else {
+                groupList.innerHTML = '<p style="color:#666;text-align:center;padding:8px;">No groups yet</p>';
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function hideSaveModal() {
+            document.getElementById('saveModal').classList.add('hidden');
+        }
+
+        // Save to phone (download)
+        function saveToPhone() {
+            hideSaveModal();
+
+            // Redraw canvas WITHOUT markers
+            if (currentMaskData) {
+                previewCtx.putImageData(currentMaskData, 0, 0);
+            }
+
+            const link = document.createElement('a');
+            link.download = 'mask-' + Date.now() + '.png';
+            link.href = previewCanvas.toDataURL('image/png');
+            link.click();
+
+            // Redraw markers
+            drawEyePointMarkers();
+            updateStatus('capture', 'Mask saved to your device!');
+        }
+
+        // Show create group prompt
+        function showCreateGroup() {
+            const groupName = prompt('Enter a name for your new group:');
+            if (!groupName) return;
+
+            const safeName = groupName.toLowerCase().replace(/[^a-z0-9-_]/g, '');
+            if (!safeName) {
+                alert('Please use only letters and numbers');
+                return;
+            }
+
+            saveToGroup(safeName);
+        }
+
+        // Save to a group
+        async function saveToGroup(groupName) {
+            hideSaveModal();
+
+            const maskName = prompt('Enter a name for this mask:', 'My Mask');
+            if (!maskName) return;
+
+            updateStatus('capture', 'Saving to ' + groupName + '...');
+
+            try {
+                // Redraw canvas WITHOUT markers
+                if (currentMaskData) {
+                    previewCtx.putImageData(currentMaskData, 0, 0);
+                }
+
+                const imageDataUrl = previewCanvas.toDataURL('image/png');
+
+                const anchors = {
+                    leftEye: { x: eyePoints.left.x / previewCanvas.width, y: eyePoints.left.y / previewCanvas.height },
+                    rightEye: { x: eyePoints.right.x / previewCanvas.width, y: eyePoints.right.y / previewCanvas.height }
+                };
+                if (eyePoints.leftMouth) {
+                    anchors.leftMouth = { x: eyePoints.leftMouth.x / previewCanvas.width, y: eyePoints.leftMouth.y / previewCanvas.height };
+                }
+                if (eyePoints.rightMouth) {
+                    anchors.rightMouth = { x: eyePoints.rightMouth.x / previewCanvas.width, y: eyePoints.rightMouth.y / previewCanvas.height };
+                }
+
+                const response = await fetch(`${WORKER_URL}/upload`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        group: groupName,
+                        name: maskName,
+                        imageData: imageDataUrl,
+                        anchors: anchors
+                    })
+                });
+
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Upload failed');
+
+                // Save group to storage
+                saveGroupToStorage(groupName);
+                setLastGroup(groupName);
+
+                // Redraw markers
+                drawEyePointMarkers();
+                galleryManifest = null;
+
+                updateStatus('capture', `"${maskName}" saved to ${groupName}!`);
+
+            } catch (error) {
+                console.error('Save error:', error);
+                drawEyePointMarkers();
+                updateStatus('capture', 'Save failed: ' + error.message);
+            }
+        }
+
+        // Share Group Modal
+        function showShareModal() {
+            const modal = document.getElementById('shareModal');
+            const urlEl = document.getElementById('shareUrl');
+            const qrEl = document.getElementById('qrCode');
+
+            const shareUrl = `https://dbgh.uk/m?group=${currentGroup}`;
+            urlEl.textContent = shareUrl;
+
+            // Generate QR code
+            qrEl.innerHTML = '';
+            new QRCode(qrEl, {
+                text: shareUrl,
+                width: 180,
+                height: 180,
+                colorDark: '#000000',
+                colorLight: '#ffffff'
+            });
+
+            modal.classList.remove('hidden');
+        }
+
+        function hideShareModal() {
+            document.getElementById('shareModal').classList.add('hidden');
+        }
+
+        function copyShareLink() {
+            const url = `https://dbgh.uk/m?group=${currentGroup}`;
+            navigator.clipboard.writeText(url).then(() => {
+                alert('Link copied!');
+            });
+        }
+
+        function shareLink() {
+            const url = `https://dbgh.uk/m?group=${currentGroup}`;
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Join my mask group!',
+                    text: `Join the "${currentGroup}" mask group`,
+                    url: url
+                });
+            } else {
+                copyShareLink();
+            }
+        }
+
+        // Group Picker Modal
+        function showGroupPicker() {
+            const modal = document.getElementById('groupPickerModal');
+            const list = document.getElementById('groupPickerList');
+            const groups = getSavedGroups();
+            const lastGroup = getLastGroup();
+
+            let html = `
+                <button class="modal-btn ${currentGroup === 'default' ? 'selected' : ''}" data-group="default">
+                    <span class="icon">⭐</span>
+                    Default
+                </button>
+            `;
+
+            groups.forEach(g => {
+                html += `
+                    <button class="modal-btn ${currentGroup === g ? 'selected' : ''}" data-group="${g}">
+                        <span class="icon">📁</span>
+                        ${g}
+                    </button>
+                `;
+            });
+
+            list.innerHTML = html;
+
+            list.querySelectorAll('[data-group]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    switchToGroup(btn.dataset.group);
+                });
+            });
+
+            modal.classList.remove('hidden');
+        }
+
+        function hideGroupPicker() {
+            document.getElementById('groupPickerModal').classList.add('hidden');
+        }
+
+        function switchToGroup(groupName) {
+            setLastGroup(groupName);
+            window.location.href = `?group=${groupName}`;
+        }
+
+        // ============================================
         // EVENT HANDLERS
         // ============================================
 
@@ -2633,8 +3043,19 @@
         document.getElementById('galleryBtn').addEventListener('click', openGallery);
         document.getElementById('closeGalleryBtn').addEventListener('click', closeGallery);
 
-        // Publish
-        document.getElementById('publishBtn').addEventListener('click', publishToGallery);
+        // Save Modal
+        document.getElementById('saveBtn').addEventListener('click', showSaveModal);
+        document.getElementById('saveToPhoneBtn').addEventListener('click', saveToPhone);
+        document.getElementById('saveToGroupBtn').addEventListener('click', showCreateGroup);
+        document.getElementById('saveCancelBtn').addEventListener('click', hideSaveModal);
+
+        // Share Modal
+        document.getElementById('copyLinkBtn').addEventListener('click', copyShareLink);
+        document.getElementById('shareLinkBtn').addEventListener('click', shareLink);
+        document.getElementById('shareCancelBtn').addEventListener('click', hideShareModal);
+
+        // Group Picker Modal
+        document.getElementById('groupPickerCancelBtn').addEventListener('click', hideGroupPicker);
 
         // Edit Mask event handlers
         document.getElementById('editMaskBtn').addEventListener('click', openEditMask);
@@ -2666,7 +3087,7 @@
         document.getElementById('textureBtn').addEventListener('click', startTextureMode);
         document.getElementById('cancelTextureBtn').addEventListener('click', stopTextureMode);
         document.getElementById('captureTextureBtn').addEventListener('click', captureTexture);
-        document.getElementById('publishEditBtn').addEventListener('click', publishFromEditMask);
+        document.getElementById('saveEditBtn').addEventListener('click', showSaveModal);
 
         // Create mask texture
         document.getElementById('createTextureBtn').addEventListener('click', startCreateTextureMode);
@@ -2709,8 +3130,30 @@
             if (trackCanvas && isTracking) resizeTrackCanvas();
         });
 
-        // Gear button toggles UI visibility
-        document.getElementById('gearBtn').addEventListener('click', () => {
+        // Settings Modal
+        function showSettingsModal() {
+            document.getElementById('currentGroupDisplay').textContent = currentGroup;
+            document.getElementById('settingsModal').classList.remove('hidden');
+        }
+
+        function hideSettingsModal() {
+            document.getElementById('settingsModal').classList.add('hidden');
+        }
+
+        // Gear button shows settings menu
+        document.getElementById('gearBtn').addEventListener('click', showSettingsModal);
+
+        document.getElementById('settingsCancelBtn').addEventListener('click', hideSettingsModal);
+        document.getElementById('changeGroupBtn').addEventListener('click', () => {
+            hideSettingsModal();
+            showGroupPicker();
+        });
+        document.getElementById('shareGroupBtn').addEventListener('click', () => {
+            hideSettingsModal();
+            showShareModal();
+        });
+        document.getElementById('toggleUiBtn').addEventListener('click', () => {
+            hideSettingsModal();
             document.querySelector('.container').classList.toggle('ui-hidden');
         });
 
