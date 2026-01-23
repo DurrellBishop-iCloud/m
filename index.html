@@ -569,7 +569,7 @@
             <!-- Mask Gallery Overlay -->
             <div class="gallery-overlay hidden" id="galleryOverlay">
                 <div class="gallery-header">
-                    <span>Choose a Mask <span id="maskCount" style="opacity:0.7"></span></span>
+                    <span>Group: <span id="groupName" style="color:#e94560"></span> <span id="maskCount" style="opacity:0.7"></span></span>
                     <button class="control-btn small" id="closeGalleryBtn">Close</button>
                 </div>
                 <div class="gallery-grid" id="galleryGrid">
@@ -714,7 +714,14 @@
         let galleryManifest = null;
         let currentMaskIndex = 0;
 
-        // GitHub config for direct publishing
+        // Worker config for group-based mask storage
+        const WORKER_URL = 'https://mask-worker.dbgh.workers.dev';
+
+        // Get group from URL param (e.g., ?group=family)
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentGroup = urlParams.get('group') || 'default';
+
+        // Legacy constants (kept for compatibility)
         const GITHUB_REPO = 'DurrellBishop-iCloud/m';
         const GITHUB_BRANCH = 'main';
 
@@ -1324,51 +1331,38 @@
                 return;
             }
 
-            const token = getGitHubToken();
-            if (!token) {
-                document.getElementById('editStatus').textContent = 'GitHub token required';
-                return;
-            }
-
             const maskName = prompt('Enter a name for this mask:', 'My Mask');
             if (!maskName) return;
 
-            document.getElementById('editStatus').textContent = 'Publishing to GitHub...';
+            document.getElementById('editStatus').textContent = 'Publishing to ' + currentGroup + '...';
 
             try {
-                const maskId = 'mask-' + Date.now();
-
                 // Redraw canvas WITHOUT markers before capturing
                 editCtx.clearRect(0, 0, editCanvas.width, editCanvas.height);
                 editCtx.drawImage(maskImage, 0, 0);
 
-                // Get PNG as base64 (clean, no markers)
+                // Get PNG as base64 data URL
                 const imageDataUrl = editCanvas.toDataURL('image/png');
-                const base64Image = imageDataUrl.replace(/^data:image\/png;base64,/, '');
 
                 // Redraw with markers so user can still see them
                 drawEditMask();
 
-                const manifestEntry = {
-                    id: maskId,
-                    name: maskName,
-                    image: `durrell-masks/images/${maskId}.png`,
-                    anchors: editAnchors
-                };
+                // Upload via worker
+                const response = await fetch(`${WORKER_URL}/upload`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        group: currentGroup,
+                        name: maskName,
+                        imageData: imageDataUrl,
+                        anchors: editAnchors
+                    })
+                });
 
-                // Upload image
-                await uploadToGitHub(token, `durrell-masks/images/${maskId}.png`, base64Image, `Add mask image: ${maskName}`);
-
-                // Get and update manifest
-                const manifestResponse = await fetch(
-                    `https://api.github.com/repos/${GITHUB_REPO}/contents/durrell-masks/manifest.json`,
-                    { headers: { 'Authorization': `token ${token}` } }
-                );
-                const manifestData = await manifestResponse.json();
-                const currentManifest = JSON.parse(atob(manifestData.content));
-                currentManifest.masks.push(manifestEntry);
-
-                await uploadToGitHub(token, 'durrell-masks/manifest.json', btoa(JSON.stringify(currentManifest, null, 2)), `Add mask to gallery: ${maskName}`, manifestData.sha);
+                const result = await response.json();
+                if (!response.ok) {
+                    throw new Error(result.error || 'Upload failed');
+                }
 
                 galleryManifest = null;
                 document.getElementById('editStatus').textContent = `"${maskName}" published!`;
@@ -1378,12 +1372,7 @@
 
             } catch (error) {
                 console.error('Publish error:', error);
-                if (error.message.includes('401')) {
-                    localStorage.removeItem('github_token');
-                    document.getElementById('editStatus').textContent = 'Invalid token. Try again.';
-                } else {
-                    document.getElementById('editStatus').textContent = 'Publish failed: ' + error.message;
-                }
+                document.getElementById('editStatus').textContent = 'Publish failed: ' + error.message;
             }
         }
 
@@ -1560,41 +1549,18 @@
 
         async function loadGalleryManifest() {
             try {
-                // Try GitHub API first (no caching) if token available
-                const token = localStorage.getItem('github_token');
-                if (token) {
-                    const apiUrl = `https://api.github.com/repos/${GITHUB_REPO}/contents/durrell-masks/manifest.json`;
-                    const response = await fetch(apiUrl, {
-                        headers: {
-                            'Authorization': `token ${token}`,
-                            'Accept': 'application/vnd.github.v3+json'
-                        },
-                        cache: 'no-store'
-                    });
-                    if (response.ok) {
-                        const data = await response.json();
-                        galleryManifest = JSON.parse(atob(data.content));
-                        console.log('Loaded ' + galleryManifest.masks.length + ' masks via API');
-                        return;
-                    }
-                }
-
-                // Fallback to raw GitHub content
-                const rawUrl = `https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_BRANCH}/durrell-masks/manifest.json?t=${Date.now()}`;
-                const response = await fetch(rawUrl, {
+                const response = await fetch(`${WORKER_URL}/masks?group=${currentGroup}`, {
                     cache: 'no-store'
                 });
                 galleryManifest = await response.json();
-                console.log('Loaded ' + galleryManifest.masks.length + ' masks via raw');
+                console.log('Loaded ' + galleryManifest.masks.length + ' masks for group: ' + currentGroup);
+
+                // Update group name display
+                const groupNameEl = document.getElementById('groupName');
+                if (groupNameEl) groupNameEl.textContent = currentGroup;
             } catch (error) {
                 console.error('Failed to load gallery manifest:', error);
-                // Fallback to local file if raw fetch fails
-                try {
-                    const localResponse = await fetch('durrell-masks/manifest.json?t=' + Date.now());
-                    galleryManifest = await localResponse.json();
-                } catch (e) {
-                    galleryManifest = { masks: [] };
-                }
+                galleryManifest = { masks: [] };
             }
         }
 
@@ -1614,8 +1580,10 @@
             galleryManifest.masks.forEach(mask => {
                 const item = document.createElement('div');
                 item.className = 'gallery-mask-item';
+                // Build full image URL from raw GitHub
+                const imageUrl = `https://raw.githubusercontent.com/DurrellBishop-iCloud/m/main/${mask.image}`;
                 item.innerHTML = `
-                    <img src="${mask.image}" alt="${mask.name}">
+                    <img src="${imageUrl}" alt="${mask.name}">
                     <button class="delete-btn" data-mask-id="${mask.id}">&times;</button>
                 `;
 
@@ -1634,13 +1602,7 @@
 
         async function deleteMask(mask) {
             // Confirm deletion
-            if (!confirm(`Delete "${mask.name}"?\n\nThis will permanently remove the mask from the gallery.`)) {
-                return;
-            }
-
-            const token = localStorage.getItem('github_token');
-            if (!token) {
-                alert('GitHub token required to delete masks');
+            if (!confirm(`Delete "${mask.name}"?\n\nThis will permanently remove the mask from the group.`)) {
                 return;
             }
 
@@ -1649,59 +1611,20 @@
                 const countEl = document.getElementById('maskCount');
                 countEl.textContent = '(deleting...)';
 
-                // Get the SHA of the image file to delete it
-                const imageResponse = await fetch(
-                    `https://api.github.com/repos/${GITHUB_REPO}/contents/${mask.image}`,
-                    { headers: { 'Authorization': `token ${token}` } }
-                );
+                // Delete via worker
+                const response = await fetch(`${WORKER_URL}/mask`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        group: currentGroup,
+                        maskId: mask.id
+                    })
+                });
 
-                if (imageResponse.ok) {
-                    const imageData = await imageResponse.json();
-
-                    // Delete the image file
-                    await fetch(
-                        `https://api.github.com/repos/${GITHUB_REPO}/contents/${mask.image}`,
-                        {
-                            method: 'DELETE',
-                            headers: {
-                                'Authorization': `token ${token}`,
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                message: `Delete mask: ${mask.name}`,
-                                sha: imageData.sha
-                            })
-                        }
-                    );
+                const result = await response.json();
+                if (!response.ok) {
+                    throw new Error(result.error || 'Delete failed');
                 }
-
-                // Get current manifest and remove this mask
-                const manifestResponse = await fetch(
-                    `https://api.github.com/repos/${GITHUB_REPO}/contents/durrell-masks/manifest.json`,
-                    { headers: { 'Authorization': `token ${token}` } }
-                );
-                const manifestData = await manifestResponse.json();
-                const currentManifest = JSON.parse(atob(manifestData.content));
-
-                // Remove the mask from the array
-                currentManifest.masks = currentManifest.masks.filter(m => m.id !== mask.id);
-
-                // Update manifest on GitHub
-                await fetch(
-                    `https://api.github.com/repos/${GITHUB_REPO}/contents/durrell-masks/manifest.json`,
-                    {
-                        method: 'PUT',
-                        headers: {
-                            'Authorization': `token ${token}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            message: `Remove mask from gallery: ${mask.name}`,
-                            content: btoa(JSON.stringify(currentManifest, null, 2)),
-                            sha: manifestData.sha
-                        })
-                    }
-                );
 
                 // Reload gallery
                 await loadGalleryManifest();
@@ -1744,7 +1667,7 @@
                         reject(err);
                     };
 
-                    img.src = maskData.image;
+                    img.src = `https://raw.githubusercontent.com/DurrellBishop-iCloud/m/main/${maskData.image}`;
 
                 } catch (error) {
                     debug('CATCH ERROR: ' + error.message);
@@ -1777,16 +1700,10 @@
                 return;
             }
 
-            const token = getGitHubToken();
-            if (!token) {
-                updateStatus('capture', 'GitHub token required to publish');
-                return;
-            }
-
             const maskName = prompt('Enter a name for this mask:', 'My Mask');
             if (!maskName) return;
 
-            updateStatus('capture', 'Publishing to GitHub...');
+            updateStatus('capture', 'Publishing to group: ' + currentGroup + '...');
 
             try {
                 // Redraw canvas WITHOUT markers
@@ -1794,14 +1711,10 @@
                     previewCtx.putImageData(currentMaskData, 0, 0);
                 }
 
-                // Generate a unique ID
-                const maskId = 'mask-' + Date.now();
-
-                // Get PNG as base64 (remove data URL prefix)
+                // Get PNG as base64 data URL
                 const imageDataUrl = previewCanvas.toDataURL('image/png');
-                const base64Image = imageDataUrl.replace(/^data:image\/png;base64,/, '');
 
-                // Create manifest entry with all anchors
+                // Create anchors
                 const anchors = {
                     leftEye: {
                         x: eyePoints.left.x / previewCanvas.width,
@@ -1812,7 +1725,6 @@
                         y: eyePoints.right.y / previewCanvas.height
                     }
                 };
-                // Add mouth anchors if set
                 if (eyePoints.leftMouth) {
                     anchors.leftMouth = {
                         x: eyePoints.leftMouth.x / previewCanvas.width,
@@ -1826,40 +1738,22 @@
                     };
                 }
 
-                const manifestEntry = {
-                    id: maskId,
-                    name: maskName,
-                    image: `durrell-masks/images/${maskId}.png`,
-                    anchors: anchors
-                };
+                // Upload via worker
+                const response = await fetch(`${WORKER_URL}/upload`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        group: currentGroup,
+                        name: maskName,
+                        imageData: imageDataUrl,
+                        anchors: anchors
+                    })
+                });
 
-                // 1. Upload the PNG image
-                await uploadToGitHub(
-                    token,
-                    `durrell-masks/images/${maskId}.png`,
-                    base64Image,
-                    `Add mask image: ${maskName}`
-                );
-
-                // 2. Get current manifest
-                const manifestResponse = await fetch(
-                    `https://api.github.com/repos/${GITHUB_REPO}/contents/durrell-masks/manifest.json`,
-                    { headers: { 'Authorization': `token ${token}` } }
-                );
-                const manifestData = await manifestResponse.json();
-                const currentManifest = JSON.parse(atob(manifestData.content));
-
-                // 3. Add new mask to manifest
-                currentManifest.masks.push(manifestEntry);
-
-                // 4. Update manifest
-                await uploadToGitHub(
-                    token,
-                    'durrell-masks/manifest.json',
-                    btoa(JSON.stringify(currentManifest, null, 2)),
-                    `Add mask to gallery: ${maskName}`,
-                    manifestData.sha
-                );
+                const result = await response.json();
+                if (!response.ok) {
+                    throw new Error(result.error || 'Upload failed');
+                }
 
                 // Redraw markers
                 drawEyePointMarkers();
@@ -1867,18 +1761,12 @@
                 // Clear the gallery cache so it reloads
                 galleryManifest = null;
 
-                updateStatus('capture', `"${maskName}" published to gallery!`);
+                updateStatus('capture', `"${maskName}" published to ${currentGroup}!`);
 
             } catch (error) {
                 console.error('Publish error:', error);
                 drawEyePointMarkers();
-
-                if (error.message.includes('401')) {
-                    localStorage.removeItem('github_token');
-                    updateStatus('capture', 'Invalid token. Tap Publish to try again.');
-                } else {
-                    updateStatus('capture', 'Publish failed: ' + error.message);
-                }
+                updateStatus('capture', 'Publish failed: ' + error.message);
             }
         }
 
