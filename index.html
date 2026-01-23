@@ -3328,17 +3328,20 @@
         window.addEventListener('load', async () => {
             showLoading('Loading face detection...');
 
+            // Check if we should go to capture view FIRST (from group selection)
+            // Do this before async initialization so it happens immediately
+            const shouldCapture = window.location.hash === '#capture';
+            if (shouldCapture) {
+                // Clear the hash right away
+                history.replaceState(null, '', window.location.pathname + window.location.search);
+                // Switch to capture view immediately
+                switchView('capture');
+            }
+
             try {
                 await initializeFaceLandmarker();
                 // Load a random mask after initialization
                 await loadRandomMask();
-
-                // Check if we should go to capture view (from group selection)
-                if (window.location.hash === '#capture') {
-                    switchView('capture');
-                    // Clear the hash
-                    history.replaceState(null, '', window.location.pathname + window.location.search);
-                }
             } catch (error) {
                 console.error('Initialization error:', error);
                 updateStatus('track', 'Error loading: ' + error.message);
