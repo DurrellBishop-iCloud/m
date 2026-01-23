@@ -771,7 +771,6 @@
                 <button class="control-btn" id="retakeBtn">Retake</button>
                 <button class="control-btn" id="addPointsBtn">Add Anchors</button>
                 <button class="control-btn" id="createTextureBtn">Change Texture</button>
-                <button class="control-btn success" id="saveMaskBtn">Save</button>
                 <button class="control-btn primary" id="saveBtn">Save</button>
             </div>
 
@@ -2237,7 +2236,6 @@
             });
 
             previewCtx.putImageData(result.imageData, 0, 0);
-            document.getElementById('saveMaskBtn').classList.remove('hidden');
 
             // Save current state for later use (eye point markers)
             currentMaskData = previewCtx.getImageData(0, 0, previewCanvas.width, previewCanvas.height);
@@ -3085,7 +3083,6 @@
 
         document.getElementById('takePhotoBtn').addEventListener('click', takePhoto);
         document.getElementById('retakeBtn').addEventListener('click', retakePhoto);
-        document.getElementById('saveMaskBtn').addEventListener('click', saveMask);
 
         // Tap on preview canvas - either cut holes or place eye points
         document.getElementById('previewCanvas').addEventListener('click', (e) => {
