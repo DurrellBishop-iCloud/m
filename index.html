@@ -697,12 +697,6 @@
             </div>
             <div class="controls">
                 <button class="control-btn" id="galleryBtn">Choose Mask</button>
-                <label class="control-btn" id="loadMaskLabel">
-                    Load File
-                    <input type="file" id="loadMaskInput" accept=".json" style="display:none">
-                </label>
-                <button class="control-btn" id="editMaskBtn" style="display:none">Edit Mask</button>
-                <button class="control-btn" id="clearMaskBtn" style="display:none">Clear Mask</button>
             </div>
 
             <!-- Mask Gallery Overlay -->
@@ -1247,8 +1241,6 @@
                         height: data.height,
                         anchors: data.anchors
                     };
-                    document.getElementById('clearMaskBtn').style.display = 'inline-block';
-                    document.getElementById('editMaskBtn').style.display = 'inline-block';
                     updateStatus('track', 'Mask loaded!');
                 };
                 img.onerror = () => {
@@ -1265,8 +1257,6 @@
         function clearLoadedMask() {
             loadedMask = null;
             maskImage = null;
-            document.getElementById('clearMaskBtn').style.display = 'none';
-            document.getElementById('editMaskBtn').style.display = 'none';
             updateStatus('track', 'Mask cleared');
         }
 
@@ -1795,9 +1785,6 @@
                             height: img.height,
                             anchors: maskData.anchors
                         };
-
-                        document.getElementById('clearMaskBtn').style.display = 'inline-block';
-                        document.getElementById('editMaskBtn').style.display = 'inline-block';
 
                         // Only close gallery if it's open
                         if (!document.getElementById('galleryOverlay').classList.contains('hidden')) {
@@ -3017,14 +3004,6 @@
         // EVENT HANDLERS
         // ============================================
 
-        document.getElementById('loadMaskInput').addEventListener('change', (e) => {
-            if (e.target.files && e.target.files[0]) {
-                loadMaskFile(e.target.files[0]);
-            }
-        });
-
-        document.getElementById('clearMaskBtn').addEventListener('click', clearLoadedMask);
-
         // Gallery
         document.getElementById('galleryBtn').addEventListener('click', openGallery);
         document.getElementById('closeGalleryBtn').addEventListener('click', closeGallery);
@@ -3056,7 +3035,6 @@
         document.getElementById('groupPickerCancelBtn').addEventListener('click', hideGroupPicker);
 
         // Edit Mask event handlers
-        document.getElementById('editMaskBtn').addEventListener('click', openEditMask);
         document.getElementById('closeEditBtn').addEventListener('click', closeEditMask);
         document.getElementById('resetPointsBtn').addEventListener('click', resetEditAnchors);
 
