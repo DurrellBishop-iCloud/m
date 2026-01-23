@@ -681,25 +681,34 @@
         </div>
     </div>
 
-    <!-- Settings Menu Modal -->
-    <div class="modal-overlay hidden" id="settingsModal">
+    <!-- Group Menu Modal -->
+    <div class="modal-overlay hidden" id="groupMenuModal">
         <div class="modal">
-            <h3>Settings</h3>
-            <p style="text-align:center;color:#e94560;margin-bottom:16px;">Group: <span id="currentGroupDisplay"></span></p>
-            <button class="modal-btn" id="changeGroupBtn">
-                <span class="icon">📁</span>
-                Change Group
+            <p style="text-align:center;margin-bottom:16px;">
+                <span style="color:#888;">Group:</span>
+                <span id="currentGroupDisplay" style="color:#e94560;font-weight:bold;"></span>
+                <span id="groupReadOnly" style="color:#666;font-size:12px;"></span>
+            </p>
+
+            <button class="modal-btn" id="newGroupBtn">
+                <span class="icon">✨</span>
+                New Group
             </button>
-            <button class="modal-btn" id="shareGroupBtn">
+
+            <button class="modal-btn" id="localGroupBtn">
+                <span class="icon">📱</span>
+                Local
+            </button>
+
+            <div id="savedGroupsList"></div>
+
+            <div class="modal-divider" id="shareSection"></div>
+            <button class="modal-btn" id="shareGroupBtn" style="display:none;">
                 <span class="icon">📤</span>
                 Share Group
             </button>
-            <div class="modal-divider"></div>
-            <button class="modal-btn" id="toggleUiBtn">
-                <span class="icon">👁️</span>
-                Toggle UI
-            </button>
-            <button class="modal-cancel" id="settingsCancelBtn">Close</button>
+
+            <button class="modal-btn primary" id="groupActionBtn">Close</button>
         </div>
     </div>
     <div class="version-tag">v5.1-mouth</div>
@@ -885,7 +894,7 @@
 
         // Get group from URL param (e.g., ?group=family)
         const urlParams = new URLSearchParams(window.location.search);
-        const currentGroup = urlParams.get('group') || 'default';
+        const currentGroup = urlParams.get('group') || 'public';
 
         // Legacy constants (kept for compatibility)
         const GITHUB_REPO = 'DurrellBishop-iCloud/m';
@@ -3043,11 +3052,23 @@
         document.getElementById('galleryBtn').addEventListener('click', openGallery);
         document.getElementById('closeGalleryBtn').addEventListener('click', closeGallery);
 
-        // Save Modal
-        document.getElementById('saveBtn').addEventListener('click', showSaveModal);
-        document.getElementById('saveToPhoneBtn').addEventListener('click', saveToPhone);
-        document.getElementById('saveToGroupBtn').addEventListener('click', showCreateGroup);
-        document.getElementById('saveCancelBtn').addEventListener('click', hideSaveModal);
+        // Save button - saves to current group
+        document.getElementById('saveBtn').addEventListener('click', () => {
+            if (currentGroup === 'public') {
+                alert('You cannot save to the Public group. Please choose a different group from the gear menu.');
+                return;
+            }
+            if (currentGroup === 'local') {
+                saveToPhone();
+            } else {
+                saveToGroup(currentGroup);
+            }
+        });
+
+        // Old modal buttons (kept for compatibility)
+        document.getElementById('saveToPhoneBtn')?.addEventListener('click', saveToPhone);
+        document.getElementById('saveToGroupBtn')?.addEventListener('click', showCreateGroup);
+        document.getElementById('saveCancelBtn')?.addEventListener('click', hideSaveModal);
 
         // Share Modal
         document.getElementById('copyLinkBtn').addEventListener('click', copyShareLink);
@@ -3087,7 +3108,22 @@
         document.getElementById('textureBtn').addEventListener('click', startTextureMode);
         document.getElementById('cancelTextureBtn').addEventListener('click', stopTextureMode);
         document.getElementById('captureTextureBtn').addEventListener('click', captureTexture);
-        document.getElementById('saveEditBtn').addEventListener('click', showSaveModal);
+        document.getElementById('saveEditBtn').addEventListener('click', () => {
+            if (currentGroup === 'public') {
+                alert('You cannot save to the Public group. Please choose a different group from the gear menu.');
+                return;
+            }
+            if (currentGroup === 'local') {
+                saveToPhone();
+            } else {
+                // Use the edit mask publish function
+                if (!editAnchors.leftEye || !editAnchors.rightEye) {
+                    document.getElementById('editStatus').textContent = 'Please place both eye points';
+                    return;
+                }
+                publishFromEditMask();
+            }
+        });
 
         // Create mask texture
         document.getElementById('createTextureBtn').addEventListener('click', startCreateTextureMode);
@@ -3130,31 +3166,97 @@
             if (trackCanvas && isTracking) resizeTrackCanvas();
         });
 
-        // Settings Modal
-        function showSettingsModal() {
-            document.getElementById('currentGroupDisplay').textContent = currentGroup;
-            document.getElementById('settingsModal').classList.remove('hidden');
+        // Group Menu Modal
+        function showGroupMenu() {
+            const modal = document.getElementById('groupMenuModal');
+            const groupDisplay = document.getElementById('currentGroupDisplay');
+            const readOnlyLabel = document.getElementById('groupReadOnly');
+            const actionBtn = document.getElementById('groupActionBtn');
+            const shareBtn = document.getElementById('shareGroupBtn');
+            const shareSection = document.getElementById('shareSection');
+            const savedGroupsList = document.getElementById('savedGroupsList');
+            const localBtn = document.getElementById('localGroupBtn');
+
+            // Show current group
+            groupDisplay.textContent = currentGroup === 'public' ? 'Public' : currentGroup;
+
+            // Public group is read-only
+            if (currentGroup === 'public') {
+                readOnlyLabel.textContent = '(view only)';
+                actionBtn.textContent = 'Close';
+                shareBtn.style.display = 'none';
+                shareSection.style.display = 'none';
+            } else {
+                readOnlyLabel.textContent = '';
+                actionBtn.textContent = 'Make Mask';
+                if (currentGroup !== 'local') {
+                    shareBtn.style.display = 'flex';
+                    shareSection.style.display = 'block';
+                } else {
+                    shareBtn.style.display = 'none';
+                    shareSection.style.display = 'none';
+                }
+            }
+
+            // Highlight local button if selected
+            localBtn.classList.toggle('selected', currentGroup === 'local');
+
+            // Build saved groups list
+            const groups = getSavedGroups();
+            if (groups.length > 0) {
+                savedGroupsList.innerHTML = groups.map(g => `
+                    <button class="modal-btn ${currentGroup === g ? 'selected' : ''}" data-group="${g}">
+                        <span class="icon">👥</span>
+                        ${g}
+                    </button>
+                `).join('');
+
+                savedGroupsList.querySelectorAll('[data-group]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        switchToGroup(btn.dataset.group);
+                    });
+                });
+            } else {
+                savedGroupsList.innerHTML = '';
+            }
+
+            modal.classList.remove('hidden');
         }
 
-        function hideSettingsModal() {
-            document.getElementById('settingsModal').classList.add('hidden');
+        function hideGroupMenu() {
+            document.getElementById('groupMenuModal').classList.add('hidden');
         }
 
-        // Gear button shows settings menu
-        document.getElementById('gearBtn').addEventListener('click', showSettingsModal);
+        // Gear button shows group menu
+        document.getElementById('gearBtn').addEventListener('click', showGroupMenu);
 
-        document.getElementById('settingsCancelBtn').addEventListener('click', hideSettingsModal);
-        document.getElementById('changeGroupBtn').addEventListener('click', () => {
-            hideSettingsModal();
-            showGroupPicker();
+        document.getElementById('groupActionBtn').addEventListener('click', () => {
+            hideGroupMenu();
+            if (currentGroup !== 'public') {
+                // Go to Make Mask view (Capture tab)
+                switchView('capture');
+            }
         });
+
+        document.getElementById('newGroupBtn').addEventListener('click', () => {
+            const groupName = prompt('Enter a name for your new group:');
+            if (!groupName) return;
+            const safeName = groupName.toLowerCase().replace(/[^a-z0-9-_]/g, '');
+            if (!safeName) {
+                alert('Please use only letters and numbers');
+                return;
+            }
+            saveGroupToStorage(safeName);
+            switchToGroup(safeName);
+        });
+
+        document.getElementById('localGroupBtn').addEventListener('click', () => {
+            switchToGroup('local');
+        });
+
         document.getElementById('shareGroupBtn').addEventListener('click', () => {
-            hideSettingsModal();
+            hideGroupMenu();
             showShareModal();
-        });
-        document.getElementById('toggleUiBtn').addEventListener('click', () => {
-            hideSettingsModal();
-            document.querySelector('.container').classList.toggle('ui-hidden');
         });
 
         // Debug helper
