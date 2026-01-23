@@ -17,6 +17,23 @@
         "leftMouth": null,
         "rightMouth": null
       }
+    },
+    {
+      "id": "mask-1769180597568",
+      "name": "My Mask",
+      "image": "groups/test/images/mask-1769180597568.png",
+      "anchors": {
+        "leftEye": {
+          "x": 0.373134328358209,
+          "y": 0.5205299750754296
+        },
+        "rightEye": {
+          "x": 0.5721393034825871,
+          "y": 0.5247277974550701
+        },
+        "leftMouth": null,
+        "rightMouth": null
+      }
     }
   ]
 }
