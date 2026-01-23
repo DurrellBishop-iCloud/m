@@ -684,23 +684,9 @@
     <!-- Group Menu Modal -->
     <div class="modal-overlay hidden" id="groupMenuModal">
         <div class="modal">
-            <p style="text-align:center;margin-bottom:16px;">
-                <span style="color:#888;">Current:</span>
-                <span id="currentGroupDisplay" style="color:#e94560;font-weight:bold;"></span>
-            </p>
-
-            <button class="modal-btn" id="publicGroupBtn">
-                Public Masks
-            </button>
-
-            <button class="modal-btn" id="localGroupBtn">
-                Local Masks
-            </button>
-
-            <button class="modal-btn" id="newGroupBtn">
-                New Mask Group
-            </button>
-
+            <button class="modal-btn" id="publicGroupBtn">Public Masks</button>
+            <button class="modal-btn" id="localGroupBtn">Local Masks</button>
+            <button class="modal-btn" id="newGroupBtn">New Mask Group</button>
             <div id="savedGroupsList"></div>
 
             <div class="modal-divider" id="shareSection" style="display:none;"></div>
@@ -3169,21 +3155,11 @@
         // Group Menu Modal
         function showGroupMenu() {
             const modal = document.getElementById('groupMenuModal');
-            const groupDisplay = document.getElementById('currentGroupDisplay');
             const shareBtn = document.getElementById('shareGroupBtn');
             const shareSection = document.getElementById('shareSection');
             const savedGroupsList = document.getElementById('savedGroupsList');
             const publicBtn = document.getElementById('publicGroupBtn');
             const localBtn = document.getElementById('localGroupBtn');
-
-            // Show current group name
-            if (currentGroup === 'public') {
-                groupDisplay.textContent = 'Public Masks';
-            } else if (currentGroup === 'local') {
-                groupDisplay.textContent = 'Local Masks';
-            } else {
-                groupDisplay.textContent = currentGroup;
-            }
 
             // Highlight current selection
             publicBtn.classList.toggle('selected', currentGroup === 'public');
@@ -3198,8 +3174,8 @@
                 shareSection.style.display = 'none';
             }
 
-            // Build saved groups list
-            const groups = getSavedGroups();
+            // Build saved groups list (exclude public and local as they have fixed buttons)
+            const groups = getSavedGroups().filter(g => g !== 'public' && g !== 'local');
             if (groups.length > 0) {
                 savedGroupsList.innerHTML = groups.map(g => `
                     <button class="modal-btn ${currentGroup === g ? 'selected' : ''}" data-group="${g}">
