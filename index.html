@@ -884,7 +884,7 @@
         document.getElementById('makeMaskBtn').addEventListener('click', () => {
             // Non-admins can't make masks for public
             if (currentGroup === 'public' && !isAdmin) {
-                alert('Public-masks can\\'t be accessed.\\nSwitch to Local-masks or make a New Group-masks.');
+                alert('Public-masks can\\'t be accessed.\\nSwitch to Local-masks or make a shared New Group-masks.');
                 return;
             }
             switchView('capture');
