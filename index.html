@@ -854,21 +854,30 @@
         const urlParams = new URLSearchParams(window.location.search);
         const currentGroup = urlParams.get('group') || localStorage.getItem('mask_last_group') || 'local';
 
+        // Admin mode - use ?admin=durrell to unlock public uploads
+        const adminCode = urlParams.get('admin');
+        const isAdmin = adminCode === 'durrell' || localStorage.getItem('mask_admin') === 'true';
+        if (adminCode === 'durrell') {
+            localStorage.setItem('mask_admin', 'true');
+        }
+
         // Save current group as last used
         localStorage.setItem('mask_last_group', currentGroup);
 
         // Update header bar with group name
         function updateHeader() {
             const groupNameEl = document.getElementById('groupNameHeader');
+            let name;
             if (currentGroup === 'public') {
-                groupNameEl.textContent = 'Public Masks';
+                name = 'Public Masks';
             } else if (currentGroup === 'local') {
-                groupNameEl.textContent = 'Local Masks';
+                name = 'Local Masks';
             } else {
                 // Capitalize first letter and format nicely
-                const displayName = currentGroup.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-                groupNameEl.textContent = displayName;
+                name = currentGroup.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
             }
+            // Show admin indicator
+            groupNameEl.textContent = isAdmin ? '* ' + name : name;
         }
         updateHeader();
 
@@ -3059,8 +3068,8 @@
 
         // Save button - saves to current group
         document.getElementById('saveBtn').addEventListener('click', () => {
-            if (currentGroup === 'public') {
-                alert('You cannot save to the Public group. Please choose a different group from the gear menu.');
+            if (currentGroup === 'public' && !isAdmin) {
+                alert('You cannot save to the Public group. Please choose a different group.');
                 return;
             }
             if (currentGroup === 'local') {
@@ -3113,8 +3122,8 @@
         document.getElementById('cancelTextureBtn').addEventListener('click', stopTextureMode);
         document.getElementById('captureTextureBtn').addEventListener('click', captureTexture);
         document.getElementById('saveEditBtn').addEventListener('click', () => {
-            if (currentGroup === 'public') {
-                alert('You cannot save to the Public group. Please choose a different group from the gear menu.');
+            if (currentGroup === 'public' && !isAdmin) {
+                alert('You cannot save to the Public group. Please choose a different group.');
                 return;
             }
             if (currentGroup === 'local') {
