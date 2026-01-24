@@ -789,18 +789,8 @@
     </script>
 
     <script type="module">
-        document.getElementById('loadingText').textContent = 'Loading libraries...';
-
-        let FaceLandmarker, FilesetResolver;
-        try {
-            const vision = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.8/+esm');
-            FaceLandmarker = vision.FaceLandmarker;
-            FilesetResolver = vision.FilesetResolver;
-            document.getElementById('loadingText').textContent = 'Model loading...';
-        } catch (e) {
-            document.getElementById('loadingText').textContent = 'Error: ' + e.message;
-            console.error(e);
-        }
+        import { FaceLandmarker, FilesetResolver } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.8/+esm';
+        document.getElementById('loadingText').textContent = 'Libraries loaded...';
 
         // ============================================
         // LANDMARK INDICES
