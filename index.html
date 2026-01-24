@@ -123,6 +123,10 @@
             cursor: crosshair;
         }
 
+        #previewCanvas.erase-mode {
+            touch-action: pinch-zoom;
+        }
+
         /* Checkerboard background for transparency preview */
         .transparency-bg {
             background-image:
@@ -2889,6 +2893,7 @@
             eraseMode = true;
             exitEyePointMode(); // Exit eye point mode if active
             document.getElementById('eraseBtn').classList.add('active');
+            document.getElementById('previewCanvas').classList.add('erase-mode');
             updateStatus('capture', 'Drag finger to erase. Tap Erase again to exit.');
         }
 
@@ -2896,6 +2901,7 @@
             eraseMode = false;
             isErasing = false;
             document.getElementById('eraseBtn').classList.remove('active');
+            document.getElementById('previewCanvas').classList.remove('erase-mode');
             // Save the current state after erasing
             if (previewCtx && previewCanvas) {
                 currentMaskData = previewCtx.getImageData(0, 0, previewCanvas.width, previewCanvas.height);
