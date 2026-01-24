@@ -2835,6 +2835,10 @@
             exitEyePointMode(); // Exit eye point mode if active
             document.getElementById('eraseBtn').classList.add('active');
             document.getElementById('previewCanvas').classList.add('erase-mode');
+            // Restore clean image (remove markers) before erasing
+            if (currentMaskData && previewCtx) {
+                previewCtx.putImageData(currentMaskData, 0, 0);
+            }
             updateStatus('capture', 'Drag finger to erase. Tap Erase again to exit.');
         }
 
@@ -2843,10 +2847,12 @@
             isErasing = false;
             document.getElementById('eraseBtn').classList.remove('active');
             document.getElementById('previewCanvas').classList.remove('erase-mode');
-            // Save the current state after erasing
+            // Save the current state after erasing (without markers)
             if (previewCtx && previewCanvas) {
                 currentMaskData = previewCtx.getImageData(0, 0, previewCanvas.width, previewCanvas.height);
             }
+            // Redraw markers on top
+            drawEyePointMarkers();
             updateStatus('capture', 'Erase complete');
         }
 
