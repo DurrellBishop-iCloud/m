@@ -1934,6 +1934,24 @@
             });
         }
 
+        // Reload current mask after editing (fetches fresh data)
+        async function reloadCurrentMask() {
+            // Clear current mask
+            loadedMask = null;
+            maskImage = null;
+
+            // Reload gallery manifest
+            await loadGalleryManifest();
+
+            // If we have masks, load the first one (or current index if valid)
+            if (galleryManifest && galleryManifest.masks && galleryManifest.masks.length > 0) {
+                if (currentMaskIndex >= galleryManifest.masks.length) {
+                    currentMaskIndex = 0;
+                }
+                await selectGalleryMask(galleryManifest.masks[currentMaskIndex]);
+            }
+        }
+
         // ============================================
         // PUBLISH TO GALLERY (Direct to GitHub)
         // ============================================
@@ -3033,7 +3051,10 @@
                 editingMask = null;
                 editingMaskGroup = null;
                 document.getElementById('retakeBtn').textContent = 'Retake';
-                setTimeout(() => switchView('track'), 1000);
+                setTimeout(async () => {
+                    switchView('track');
+                    await reloadCurrentMask();
+                }, 1000);
             } else {
                 // Update remote mask - need to delete old and create new with same name
                 updateStatus('capture', 'Updating mask...');
@@ -3070,7 +3091,10 @@
                     editingMask = null;
                     editingMaskGroup = null;
                     document.getElementById('retakeBtn').textContent = 'Retake';
-                    setTimeout(() => switchView('track'), 1000);
+                    setTimeout(async () => {
+                        switchView('track');
+                        await reloadCurrentMask();
+                    }, 1000);
                 } catch (error) {
                     updateStatus('capture', 'Error updating mask: ' + error.message);
                 }
@@ -3125,9 +3149,10 @@
 
             updateStatus('capture', `"${maskName}" saved to Local-masks!`);
 
-            // Return to play mode after a brief delay
-            setTimeout(() => {
+            // Return to play mode after a brief delay and reload mask
+            setTimeout(async () => {
                 switchView('track');
+                await reloadCurrentMask();
             }, 1000);
         }
 
@@ -3201,9 +3226,10 @@
 
                 updateStatus('capture', `"${maskName}" saved to ${groupName}!`);
 
-                // Return to play mode after a brief delay
-                setTimeout(() => {
+                // Return to play mode after a brief delay and reload mask
+                setTimeout(async () => {
                     switchView('track');
+                    await reloadCurrentMask();
                 }, 1000);
 
             } catch (error) {
