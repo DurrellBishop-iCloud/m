@@ -184,6 +184,16 @@
             color: white;
         }
 
+        .control-btn.eye-btn {
+            min-width: 32px;
+        }
+
+        .control-btn.eye-btn.placed {
+            background: #4a4;
+            border-color: #4a4;
+            color: white;
+        }
+
         .status {
             padding: 8px;
             text-align: center;
@@ -822,10 +832,11 @@
             <!-- Edit controls (above canvas so always accessible) -->
             <div class="controls hidden" id="editControls">
                 <button class="control-btn" id="retakeBtn">Retake</button>
-                <button class="control-btn" id="addPointsBtn">Add Eyes</button>
                 <button class="control-btn" id="eraseBtn">Erase</button>
                 <button class="control-btn" id="createTextureBtn">Change Texture</button>
+                <button class="control-btn eye-btn" id="eyeRightBtn">1</button>
                 <button class="control-btn primary" id="saveBtn">Save</button>
+                <button class="control-btn eye-btn" id="eyeLeftBtn">2</button>
             </div>
 
             <div class="slider-row" id="toleranceRow">
@@ -834,10 +845,6 @@
                 <span class="slider-value" id="toleranceValue">60</span>
             </div>
 
-            <div class="points-info hidden" id="pointsInfo">
-                <span id="pointsStatus">Tap RIGHT side for right eye, then LEFT side</span>
-                <button class="control-btn small" id="clearPointsBtn">Clear Points</button>
-            </div>
 
             <!-- Camera state -->
             <div id="captureCamera" class="camera-container">
@@ -916,6 +923,7 @@
 
         // Anchor point placement state (eyes and mouth)
         let eyePointMode = false;
+        let placingEye = null;  // 'left', 'right', or null
         let eraseMode = false;
         let isErasing = false;
         let eyePoints = { left: null, right: null };
@@ -2146,7 +2154,7 @@
 
                 // Update UI
                 document.getElementById('editControls').classList.add('hidden');
-                document.getElementById('pointsInfo').classList.add('hidden');
+                exitEyePointMode();
                 document.getElementById('toleranceRow').classList.add('hidden');
 
                 // Show texture controls (reuse capture controls area)
@@ -2387,8 +2395,9 @@
             currentMaskData = null;
             eyePoints = { left: null, right: null };
             eyePointMode = false;
-            document.getElementById('pointsInfo').classList.add('hidden');
-            document.getElementById('addPointsBtn').classList.remove('active');
+            placingEye = null;
+            updateEyeButtons();
+            exitEyePointMode();
             startCaptureCamera();
         }
 
@@ -2818,19 +2827,27 @@
         // EYE POINT PLACEMENT
         // ============================================
 
-        function enterEyePointMode() {
+        function startPlacingEye(which) {
+            if (eraseMode) exitEraseMode();
             eyePointMode = true;
-            eyePoints = { left: null, right: null };
-            document.getElementById('pointsInfo').classList.remove('hidden');
-            document.getElementById('addPointsBtn').classList.add('active');
-            updatePointsStatus();
-            drawEyePointMarkers();
+            placingEye = which;
+            document.getElementById('eyeRightBtn').classList.toggle('active', which === 'right');
+            document.getElementById('eyeLeftBtn').classList.toggle('active', which === 'left');
+            updateStatus('capture', `Tap on mask to place ${which === 'right' ? 'RIGHT' : 'LEFT'} eye`);
         }
 
         function exitEyePointMode() {
             eyePointMode = false;
-            document.getElementById('pointsInfo').classList.add('hidden');
-            document.getElementById('addPointsBtn').classList.remove('active');
+            placingEye = null;
+            document.getElementById('eyeRightBtn').classList.remove('active');
+            document.getElementById('eyeLeftBtn').classList.remove('active');
+        }
+
+        function updateEyeButtons() {
+            const rightBtn = document.getElementById('eyeRightBtn');
+            const leftBtn = document.getElementById('eyeLeftBtn');
+            rightBtn.classList.toggle('placed', !!eyePoints.right);
+            leftBtn.classList.toggle('placed', !!eyePoints.left);
         }
 
         // ============================================
@@ -2897,30 +2914,23 @@
 
         function clearEyePoints() {
             eyePoints = { left: null, right: null };
-            updatePointsStatus();
+            updateEyeButtons();
             drawEyePointMarkers();
-        }
-
-        function updatePointsStatus() {
-            const status = document.getElementById('pointsStatus');
-            if (!eyePoints.right) {
-                status.textContent = 'Tap RIGHT side for right eye';
-            } else if (!eyePoints.left) {
-                status.textContent = 'Tap LEFT side for left eye';
-            } else {
-                status.textContent = 'Eyes placed! Save or clear to redo.';
-            }
         }
 
         function placeEyePoint(canvasX, canvasY) {
-            if (!eyePoints.right) {
+            if (placingEye === 'right') {
                 eyePoints.right = { x: canvasX, y: canvasY };
-            } else if (!eyePoints.left) {
+            } else if (placingEye === 'left') {
                 eyePoints.left = { x: canvasX, y: canvasY };
             }
-            // If both eyes are placed, do nothing (user must clear first)
-            updatePointsStatus();
+            updateEyeButtons();
             drawEyePointMarkers();
+            exitEyePointMode();
+
+            if (eyePoints.left && eyePoints.right) {
+                updateStatus('capture', 'Both eyes placed! Ready to Save.');
+            }
         }
 
         function drawEyePointMarkers() {
@@ -3243,8 +3253,8 @@
             // Hide edit-specific UI
             document.getElementById('editControls').classList.add('hidden');
             document.getElementById('toleranceRow').classList.add('hidden');
-            document.getElementById('pointsInfo').classList.add('hidden');
             eyePointMode = false;
+            placingEye = null;
             eraseMode = false;
 
             updateStatus('capture', `"${maskName}" saved to Local-masks!`);
@@ -3696,13 +3706,20 @@
         previewCanvasEl.addEventListener('touchend', handleEraseEnd);
         previewCanvasEl.addEventListener('touchcancel', handleEraseEnd);
 
-        // Add Eye Points button
-        document.getElementById('addPointsBtn').addEventListener('click', () => {
-            if (eraseMode) exitEraseMode(); // Exit erase mode first
-            if (eyePointMode) {
+        // Eye placement buttons
+        document.getElementById('eyeRightBtn').addEventListener('click', () => {
+            if (placingEye === 'right') {
                 exitEyePointMode();
             } else {
-                enterEyePointMode();
+                startPlacingEye('right');
+            }
+        });
+
+        document.getElementById('eyeLeftBtn').addEventListener('click', () => {
+            if (placingEye === 'left') {
+                exitEyePointMode();
+            } else {
+                startPlacingEye('left');
             }
         });
 
@@ -3716,7 +3733,6 @@
         });
 
         // Clear Points button
-        document.getElementById('clearPointsBtn').addEventListener('click', clearEyePoints);
 
         window.addEventListener('resize', () => {
             if (trackCanvas && isTracking) resizeTrackCanvas();
