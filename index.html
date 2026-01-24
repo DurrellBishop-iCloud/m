@@ -2947,14 +2947,14 @@
 
             // Draw eye point markers (green)
             if (eyePoints.left) {
-                drawMarker(eyePoints.left.x, eyePoints.left.y, '#00ff00', 'LE');
+                drawMarker(eyePoints.left.x, eyePoints.left.y, '#00ff00');
             }
             if (eyePoints.right) {
-                drawMarker(eyePoints.right.x, eyePoints.right.y, '#00ff00', 'RE');
+                drawMarker(eyePoints.right.x, eyePoints.right.y, '#00ff00');
             }
         }
 
-        function drawMarker(x, y, color, label) {
+        function drawMarker(x, y, color) {
             const radius = Math.max(15, previewCanvas.width * 0.02);
 
             // Outer circle
@@ -2981,13 +2981,6 @@
             previewCtx.moveTo(x, y + radius - 8);
             previewCtx.lineTo(x, y + radius + 5);
             previewCtx.stroke();
-
-            // Label
-            previewCtx.font = `bold ${radius}px sans-serif`;
-            previewCtx.fillStyle = color;
-            previewCtx.textAlign = 'center';
-            previewCtx.textBaseline = 'middle';
-            previewCtx.fillText(label, x, y + radius + 15);
         }
 
         // Tolerance slider - live update as you drag
@@ -2997,10 +2990,10 @@
                 removeBackground();
                 // Redraw eye point markers if any
                 if (eyePoints.left) {
-                    drawMarker(eyePoints.left.x, eyePoints.left.y, '#00ff00', 'L');
+                    drawMarker(eyePoints.left.x, eyePoints.left.y, '#00ff00');
                 }
                 if (eyePoints.right) {
-                    drawMarker(eyePoints.right.x, eyePoints.right.y, '#00ff00', 'R');
+                    drawMarker(eyePoints.right.x, eyePoints.right.y, '#00ff00');
                 }
             }
         });
