@@ -794,7 +794,7 @@
     <script type="module" onerror="document.getElementById('loadingText').textContent='Module failed'">
         document.getElementById('loadingText').textContent = 'Loading...';
         const { FaceLandmarker, FilesetResolver } = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.8/vision_bundle.mjs');
-        document.getElementById('loadingText').textContent = 'Libraries loaded...';
+        document.getElementById('loadingText').textContent = 'Setting up...';
 
         // ============================================
         // LANDMARK INDICES
@@ -3666,7 +3666,7 @@
         // ============================================
 
         window.addEventListener('load', async () => {
-            console.log('Window loaded, starting initialization...');
+            document.getElementById('loadingText').textContent = 'Initializing camera...';
             showLoading('Loading face detection...');
 
             // Check if we should go to capture view FIRST (from group selection)
