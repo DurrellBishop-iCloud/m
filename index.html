@@ -3228,6 +3228,15 @@
         // Select a group and go to make mask
         function selectGroupAndMake(groupName) {
             hideGroupMenu();
+
+            // Non-admins can't make masks for public - just view instead
+            if (groupName === 'public' && !isAdmin) {
+                if (currentGroup !== 'public') {
+                    window.location.href = '?group=public';
+                }
+                return;
+            }
+
             saveGroupToStorage(groupName);
             setLastGroup(groupName);
 
@@ -3348,10 +3357,12 @@
             // Check if we should go to capture view FIRST (from group selection)
             // Do this before async initialization so it happens immediately
             const shouldCapture = window.location.hash === '#capture';
+            // Clear the hash right away
             if (shouldCapture) {
-                // Clear the hash right away
                 history.replaceState(null, '', window.location.pathname + window.location.search);
-                // Switch to capture view immediately
+            }
+            // Only go to capture if allowed (non-admins can't capture on public)
+            if (shouldCapture && (currentGroup !== 'public' || isAdmin)) {
                 switchView('capture');
             }
 
