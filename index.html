@@ -606,7 +606,7 @@
         .create-group-info {
             color: #888;
             font-size: 13px;
-            text-align: center;
+            text-align: left;
             margin: 0 0 16px 0;
             line-height: 1.4;
         }
@@ -840,6 +840,7 @@
             <div class="controls hidden" id="editControls">
                 <button class="control-btn" id="retakeBtn">Retake</button>
                 <button class="control-btn" id="addPointsBtn">Add Anchors</button>
+                <button class="control-btn" id="eraseBtn">Erase</button>
                 <button class="control-btn" id="createTextureBtn">Change Texture</button>
                 <button class="control-btn primary" id="saveBtn">Save</button>
             </div>
@@ -912,6 +913,8 @@
 
         // Anchor point placement state (eyes and mouth)
         let eyePointMode = false;
+        let eraseMode = false;
+        let isErasing = false;
         let eyePoints = { left: null, right: null, leftMouth: null, rightMouth: null };
 
         // Current mask state (after background removal and hole cuts)
@@ -2877,6 +2880,60 @@
             document.getElementById('addPointsBtn').classList.remove('active');
         }
 
+        // ============================================
+        // ERASE MODE
+        // ============================================
+
+        function enterEraseMode() {
+            eraseMode = true;
+            exitEyePointMode(); // Exit eye point mode if active
+            document.getElementById('eraseBtn').classList.add('active');
+            updateStatus('capture', 'Drag finger to erase. Tap Erase again to exit.');
+        }
+
+        function exitEraseMode() {
+            eraseMode = false;
+            isErasing = false;
+            document.getElementById('eraseBtn').classList.remove('active');
+            // Save the current state after erasing
+            if (previewCtx && previewCanvas) {
+                currentMaskData = previewCtx.getImageData(0, 0, previewCanvas.width, previewCanvas.height);
+            }
+            updateStatus('capture', 'Erase complete');
+        }
+
+        function getCanvasCoords(e, canvas) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+
+            let clientX, clientY;
+            if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+
+        function eraseAtPoint(x, y) {
+            if (!previewCtx) return;
+
+            // Use destination-out to erase (make transparent)
+            previewCtx.save();
+            previewCtx.globalCompositeOperation = 'destination-out';
+            previewCtx.beginPath();
+            previewCtx.arc(x, y, 25, 0, Math.PI * 2);
+            previewCtx.fill();
+            previewCtx.restore();
+        }
+
         function clearEyePoints() {
             eyePoints = { left: null, right: null, leftMouth: null, rightMouth: null };
             updatePointsStatus();
@@ -3595,7 +3652,10 @@
         document.getElementById('retakeBtn').addEventListener('click', retakePhoto);
 
         // Tap on preview canvas - either cut holes or place eye points
+        // Tap on preview canvas - either cut holes or place eye points (not in erase mode)
         document.getElementById('previewCanvas').addEventListener('click', (e) => {
+            if (eraseMode) return; // Erase mode uses drag, not click
+
             const canvas = e.target;
             const rect = canvas.getBoundingClientRect();
 
@@ -3612,12 +3672,59 @@
             }
         });
 
+        // Erase mode - touch/mouse events for dragging
+        const previewCanvasEl = document.getElementById('previewCanvas');
+
+        function handleEraseStart(e) {
+            if (!eraseMode) return;
+            e.preventDefault();
+            isErasing = true;
+            const coords = getCanvasCoords(e, previewCanvasEl);
+            eraseAtPoint(coords.x, coords.y);
+        }
+
+        function handleEraseMove(e) {
+            if (!eraseMode || !isErasing) return;
+            e.preventDefault();
+            const coords = getCanvasCoords(e, previewCanvasEl);
+            eraseAtPoint(coords.x, coords.y);
+        }
+
+        function handleEraseEnd(e) {
+            if (!eraseMode) return;
+            if (isErasing) {
+                isErasing = false;
+                // Save state after erasing
+                currentMaskData = previewCtx.getImageData(0, 0, previewCanvas.width, previewCanvas.height);
+            }
+        }
+
+        previewCanvasEl.addEventListener('mousedown', handleEraseStart);
+        previewCanvasEl.addEventListener('mousemove', handleEraseMove);
+        previewCanvasEl.addEventListener('mouseup', handleEraseEnd);
+        previewCanvasEl.addEventListener('mouseleave', handleEraseEnd);
+
+        previewCanvasEl.addEventListener('touchstart', handleEraseStart, { passive: false });
+        previewCanvasEl.addEventListener('touchmove', handleEraseMove, { passive: false });
+        previewCanvasEl.addEventListener('touchend', handleEraseEnd);
+        previewCanvasEl.addEventListener('touchcancel', handleEraseEnd);
+
         // Add Eye Points button
         document.getElementById('addPointsBtn').addEventListener('click', () => {
+            if (eraseMode) exitEraseMode(); // Exit erase mode first
             if (eyePointMode) {
                 exitEyePointMode();
             } else {
                 enterEyePointMode();
+            }
+        });
+
+        // Erase button
+        document.getElementById('eraseBtn').addEventListener('click', () => {
+            if (eraseMode) {
+                exitEraseMode();
+            } else {
+                enterEraseMode();
             }
         });
 
