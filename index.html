@@ -799,8 +799,6 @@
                     <div class="anchor-buttons">
                         <button class="control-btn anchor-btn active" data-anchor="leftEye">L Eye</button>
                         <button class="control-btn anchor-btn" data-anchor="rightEye">R Eye</button>
-                        <button class="control-btn anchor-btn" data-anchor="leftMouth">L Mouth</button>
-                        <button class="control-btn anchor-btn" data-anchor="rightMouth">R Mouth</button>
                     </div>
                     <div class="edit-status" id="editStatus">Tap on LEFT side of mask for left eye</div>
                     <div class="edit-actions">
@@ -920,7 +918,7 @@
         let eyePointMode = false;
         let eraseMode = false;
         let isErasing = false;
-        let eyePoints = { left: null, right: null, leftMouth: null, rightMouth: null };
+        let eyePoints = { left: null, right: null };
 
         // Current mask state (after background removal and hole cuts)
         let currentMaskData = null;
@@ -1400,12 +1398,10 @@
             // Stop face tracking while editing
             stopTracking();
 
-            // Copy current anchors for editing (eyes and mouth)
+            // Copy current anchors for editing (eyes only)
             editAnchors = {
                 leftEye: loadedMask.anchors.leftEye ? { ...loadedMask.anchors.leftEye } : null,
-                rightEye: loadedMask.anchors.rightEye ? { ...loadedMask.anchors.rightEye } : null,
-                leftMouth: loadedMask.anchors.leftMouth ? { ...loadedMask.anchors.leftMouth } : null,
-                rightMouth: loadedMask.anchors.rightMouth ? { ...loadedMask.anchors.rightMouth } : null
+                rightEye: loadedMask.anchors.rightEye ? { ...loadedMask.anchors.rightEye } : null
             };
 
             // Setup edit canvas
@@ -1460,18 +1456,6 @@
                 drawEditMarker(x, y, '#00ff00', 'RE', currentEditAnchor === 'rightEye');
             }
 
-            // Draw mouth anchor points (orange)
-            if (editAnchors.leftMouth) {
-                const x = editAnchors.leftMouth.x * loadedMask.width;
-                const y = editAnchors.leftMouth.y * loadedMask.height;
-                drawEditMarker(x, y, '#ff9900', 'LM', currentEditAnchor === 'leftMouth');
-            }
-            if (editAnchors.rightMouth) {
-                const x = editAnchors.rightMouth.x * loadedMask.width;
-                const y = editAnchors.rightMouth.y * loadedMask.height;
-                drawEditMarker(x, y, '#ff9900', 'RM', currentEditAnchor === 'rightMouth');
-            }
-
             updateEditStatus();
         }
 
@@ -1511,9 +1495,7 @@
             const status = document.getElementById('editStatus');
             const labels = {
                 leftEye: 'LEFT eye',
-                rightEye: 'RIGHT eye',
-                leftMouth: 'LEFT mouth corner',
-                rightMouth: 'RIGHT mouth corner'
+                rightEye: 'RIGHT eye'
             };
             const label = labels[currentEditAnchor] || currentEditAnchor;
             if (editAnchors[currentEditAnchor]) {
@@ -1534,7 +1516,7 @@
             drawEditMask();
 
             // Auto-advance to next unplaced anchor
-            const sequence = ['leftEye', 'rightEye', 'leftMouth', 'rightMouth'];
+            const sequence = ['leftEye', 'rightEye'];
             const currentIndex = sequence.indexOf(currentEditAnchor);
             for (let i = currentIndex + 1; i < sequence.length; i++) {
                 if (!editAnchors[sequence[i]]) {
@@ -1547,7 +1529,7 @@
         }
 
         function resetEditAnchors() {
-            editAnchors = { leftEye: null, rightEye: null, leftMouth: null, rightMouth: null };
+            editAnchors = { leftEye: null, rightEye: null };
             currentEditAnchor = 'leftEye';
             updateAnchorButtons();
             drawEditMask();
@@ -1916,7 +1898,7 @@
                 currentMaskData = previewCtx.getImageData(0, 0, previewCanvas.width, previewCanvas.height);
 
                 // Load anchors as eye points
-                eyePoints = { left: null, right: null, leftMouth: null, rightMouth: null };
+                eyePoints = { left: null, right: null };
                 if (mask.anchors) {
                     if (mask.anchors.leftEye) {
                         eyePoints.left = {
@@ -1928,18 +1910,6 @@
                         eyePoints.right = {
                             x: mask.anchors.rightEye.x * img.width,
                             y: mask.anchors.rightEye.y * img.height
-                        };
-                    }
-                    if (mask.anchors.leftMouth) {
-                        eyePoints.leftMouth = {
-                            x: mask.anchors.leftMouth.x * img.width,
-                            y: mask.anchors.leftMouth.y * img.height
-                        };
-                    }
-                    if (mask.anchors.rightMouth) {
-                        eyePoints.rightMouth = {
-                            x: mask.anchors.rightMouth.x * img.width,
-                            y: mask.anchors.rightMouth.y * img.height
                         };
                     }
                 }
@@ -2099,7 +2069,7 @@
                 // Get PNG as base64 data URL
                 const imageDataUrl = previewCanvas.toDataURL('image/png');
 
-                // Create anchors
+                // Create anchors (eyes only)
                 const anchors = {
                     leftEye: {
                         x: eyePoints.left.x / previewCanvas.width,
@@ -2110,18 +2080,6 @@
                         y: eyePoints.right.y / previewCanvas.height
                     }
                 };
-                if (eyePoints.leftMouth) {
-                    anchors.leftMouth = {
-                        x: eyePoints.leftMouth.x / previewCanvas.width,
-                        y: eyePoints.leftMouth.y / previewCanvas.height
-                    };
-                }
-                if (eyePoints.rightMouth) {
-                    anchors.rightMouth = {
-                        x: eyePoints.rightMouth.x / previewCanvas.width,
-                        y: eyePoints.rightMouth.y / previewCanvas.height
-                    };
-                }
 
                 // Upload via worker
                 const response = await fetch(`${WORKER_URL}/upload`, {
@@ -2428,7 +2386,7 @@
 
             originalImageData = null;
             currentMaskData = null;
-            eyePoints = { left: null, right: null, leftMouth: null, rightMouth: null };
+            eyePoints = { left: null, right: null };
             eyePointMode = false;
             document.getElementById('pointsInfo').classList.add('hidden');
             document.getElementById('addPointsBtn').classList.remove('active');
@@ -2832,19 +2790,6 @@
                     y: eyePoints.right.y / previewCanvas.height
                 };
             }
-            // Add mouth points if they exist
-            if (eyePoints.leftMouth) {
-                maskData.anchors.leftMouth = {
-                    x: eyePoints.leftMouth.x / previewCanvas.width,
-                    y: eyePoints.leftMouth.y / previewCanvas.height
-                };
-            }
-            if (eyePoints.rightMouth) {
-                maskData.anchors.rightMouth = {
-                    x: eyePoints.rightMouth.x / previewCanvas.width,
-                    y: eyePoints.rightMouth.y / previewCanvas.height
-                };
-            }
 
             // Download as JSON file
             const jsonStr = JSON.stringify(maskData, null, 2);
@@ -2859,11 +2804,7 @@
             drawEyePointMarkers();
 
             const hasEyes = eyePoints.left && eyePoints.right;
-            const hasMouth = eyePoints.leftMouth && eyePoints.rightMouth;
-            let msg = 'Mask saved!';
-            if (hasEyes && hasMouth) msg = 'Mask saved with eye + mouth anchors!';
-            else if (hasEyes) msg = 'Mask saved with eye anchors!';
-            updateStatus('capture', msg);
+            updateStatus('capture', hasEyes ? 'Mask saved with eye anchors!' : 'Mask saved!');
         }
 
         // ============================================
@@ -2872,7 +2813,7 @@
 
         function enterEyePointMode() {
             eyePointMode = true;
-            eyePoints = { left: null, right: null, leftMouth: null, rightMouth: null };
+            eyePoints = { left: null, right: null };
             document.getElementById('pointsInfo').classList.remove('hidden');
             document.getElementById('addPointsBtn').classList.add('active');
             updatePointsStatus();
@@ -2942,7 +2883,7 @@
         }
 
         function clearEyePoints() {
-            eyePoints = { left: null, right: null, leftMouth: null, rightMouth: null };
+            eyePoints = { left: null, right: null };
             updatePointsStatus();
             drawEyePointMarkers();
         }
@@ -2953,12 +2894,8 @@
                 status.textContent = 'Tap LEFT side for left eye';
             } else if (!eyePoints.right) {
                 status.textContent = 'Tap RIGHT side for right eye';
-            } else if (!eyePoints.leftMouth) {
-                status.textContent = 'Tap LEFT mouth corner (optional, or Save)';
-            } else if (!eyePoints.rightMouth) {
-                status.textContent = 'Tap RIGHT mouth corner';
             } else {
-                status.textContent = 'All points placed! Save or clear to redo.';
+                status.textContent = 'Eyes placed! Save or clear to redo.';
             }
         }
 
@@ -2967,12 +2904,8 @@
                 eyePoints.left = { x: canvasX, y: canvasY };
             } else if (!eyePoints.right) {
                 eyePoints.right = { x: canvasX, y: canvasY };
-            } else if (!eyePoints.leftMouth) {
-                eyePoints.leftMouth = { x: canvasX, y: canvasY };
-            } else if (!eyePoints.rightMouth) {
-                eyePoints.rightMouth = { x: canvasX, y: canvasY };
             }
-            // If all are placed, do nothing (user must clear first)
+            // If both eyes are placed, do nothing (user must clear first)
             updatePointsStatus();
             drawEyePointMarkers();
         }
@@ -2989,13 +2922,6 @@
             }
             if (eyePoints.right) {
                 drawMarker(eyePoints.right.x, eyePoints.right.y, '#00ff00', 'RE');
-            }
-            // Draw mouth point markers (orange)
-            if (eyePoints.leftMouth) {
-                drawMarker(eyePoints.leftMouth.x, eyePoints.leftMouth.y, '#ff9900', 'LM');
-            }
-            if (eyePoints.rightMouth) {
-                drawMarker(eyePoints.rightMouth.x, eyePoints.rightMouth.y, '#ff9900', 'RM');
             }
         }
 
@@ -3189,17 +3115,11 @@
 
             const imageDataUrl = previewCanvas.toDataURL('image/png');
 
-            // Build updated anchors
+            // Build updated anchors (eyes only)
             const anchors = {};
             if (eyePoints.left && eyePoints.right) {
                 anchors.leftEye = { x: eyePoints.left.x / previewCanvas.width, y: eyePoints.left.y / previewCanvas.height };
                 anchors.rightEye = { x: eyePoints.right.x / previewCanvas.width, y: eyePoints.right.y / previewCanvas.height };
-            }
-            if (eyePoints.leftMouth) {
-                anchors.leftMouth = { x: eyePoints.leftMouth.x / previewCanvas.width, y: eyePoints.leftMouth.y / previewCanvas.height };
-            }
-            if (eyePoints.rightMouth) {
-                anchors.rightMouth = { x: eyePoints.rightMouth.x / previewCanvas.width, y: eyePoints.rightMouth.y / previewCanvas.height };
             }
 
             if (editingMaskGroup === 'local') {
@@ -3281,17 +3201,11 @@
             const imageDataUrl = previewCanvas.toDataURL('image/png');
             const maskId = 'local-' + Date.now();
 
-            // Build anchors
+            // Build anchors (eyes only)
             const anchors = {};
             if (eyePoints.left && eyePoints.right) {
                 anchors.leftEye = { x: eyePoints.left.x / previewCanvas.width, y: eyePoints.left.y / previewCanvas.height };
                 anchors.rightEye = { x: eyePoints.right.x / previewCanvas.width, y: eyePoints.right.y / previewCanvas.height };
-            }
-            if (eyePoints.leftMouth) {
-                anchors.leftMouth = { x: eyePoints.leftMouth.x / previewCanvas.width, y: eyePoints.leftMouth.y / previewCanvas.height };
-            }
-            if (eyePoints.rightMouth) {
-                anchors.rightMouth = { x: eyePoints.rightMouth.x / previewCanvas.width, y: eyePoints.rightMouth.y / previewCanvas.height };
             }
 
             // Save to localStorage
@@ -3349,12 +3263,6 @@
                     leftEye: { x: eyePoints.left.x / previewCanvas.width, y: eyePoints.left.y / previewCanvas.height },
                     rightEye: { x: eyePoints.right.x / previewCanvas.width, y: eyePoints.right.y / previewCanvas.height }
                 };
-                if (eyePoints.leftMouth) {
-                    anchors.leftMouth = { x: eyePoints.leftMouth.x / previewCanvas.width, y: eyePoints.leftMouth.y / previewCanvas.height };
-                }
-                if (eyePoints.rightMouth) {
-                    anchors.rightMouth = { x: eyePoints.rightMouth.x / previewCanvas.width, y: eyePoints.rightMouth.y / previewCanvas.height };
-                }
 
                 const response = await fetch(`${WORKER_URL}/upload`, {
                     method: 'POST',
