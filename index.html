@@ -789,7 +789,8 @@
     </script>
 
     <script type="module">
-        import { FaceLandmarker, FilesetResolver } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.8/+esm';
+        document.getElementById('loadingText').textContent = 'Loading (unpkg)...';
+        const { FaceLandmarker, FilesetResolver } = await import('https://unpkg.com/@mediapipe/tasks-vision@0.10.8/vision_bundle.mjs');
         document.getElementById('loadingText').textContent = 'Libraries loaded...';
 
         // ============================================
