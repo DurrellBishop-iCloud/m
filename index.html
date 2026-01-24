@@ -785,9 +785,20 @@
     </div>
 
     <script type="module">
-        import { FaceLandmarker, FilesetResolver } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.8/+esm';
+        // Show loading status immediately
+        document.getElementById('loadingText').textContent = 'Loading libraries...';
 
-        console.log('Script loaded, imports successful');
+        let FaceLandmarker, FilesetResolver;
+        try {
+            const module = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.8/+esm');
+            FaceLandmarker = module.FaceLandmarker;
+            FilesetResolver = module.FilesetResolver;
+            console.log('MediaPipe loaded successfully');
+        } catch (error) {
+            console.error('Failed to load MediaPipe:', error);
+            document.getElementById('loadingText').textContent = 'Error loading libraries. Please refresh.';
+            throw error;
+        }
 
         // ============================================
         // LANDMARK INDICES
