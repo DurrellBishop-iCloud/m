@@ -508,16 +508,6 @@
             flex: 1;
         }
 
-        .version-tag {
-            position: fixed;
-            top: 5px;
-            left: 5px;
-            font-size: 10px;
-            color: #555;
-            pointer-events: none;
-            z-index: 1000;
-        }
-
         /* Save Modal */
         .modal-overlay {
             position: fixed;
@@ -666,6 +656,7 @@
     <!-- Group Menu Modal -->
     <div class="modal-overlay hidden" id="groupMenuModal">
         <div class="modal">
+            <div style="text-align:center;font-size:10px;color:#555;margin-bottom:12px;">v5.1</div>
             <button class="modal-btn" id="publicGroupBtn">Public Masks</button>
             <button class="modal-btn" id="localGroupBtn">Local Masks</button>
             <button class="modal-btn" id="newGroupBtn">New Mask Group</button>
@@ -679,7 +670,6 @@
             <button class="modal-cancel" id="groupCloseBtn">Close</button>
         </div>
     </div>
-    <div class="version-tag">v5.1-mouth</div>
     <div id="debugInfo" style="display:none;position:fixed;bottom:10px;left:10px;background:rgba(0,0,0,0.8);color:#0f0;font-family:monospace;font-size:12px;padding:10px;z-index:9999;max-width:90%;"></div>
     <div class="container">
         <!-- Header with group name and buttons -->
@@ -744,7 +734,6 @@
                     </div>
                 </div>
             </div>
-            <div class="status" id="trackStatus">Initializing...</div>
         </div>
 
         <!-- Capture/Create Mask View -->
@@ -2767,7 +2756,8 @@
         // ============================================
 
         function updateStatus(view, message) {
-            document.getElementById(view + 'Status').textContent = message;
+            const el = document.getElementById(view + 'Status');
+            if (el) el.textContent = message;
         }
 
         function showLoading(text) {
