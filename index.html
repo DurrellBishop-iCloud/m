@@ -2402,9 +2402,6 @@
             originalImageData = null;
             currentMaskData = null;
             eyePoints = { left: null, right: null };
-            eyePointMode = false;
-            placingEye = null;
-            updateEyeButtons();
             exitEyePointMode();
             startCaptureCamera();
         }
@@ -2839,9 +2836,16 @@
             if (eraseMode) exitEraseMode();
             eyePointMode = true;
             placingEye = which;
+            // Clear the existing anchor for this eye
+            if (which === 'right') {
+                eyePoints.right = null;
+            } else {
+                eyePoints.left = null;
+            }
+            drawEyePointMarkers();
             document.getElementById('eyeRightBtn').classList.toggle('active', which === 'right');
             document.getElementById('eyeLeftBtn').classList.toggle('active', which === 'left');
-            updateStatus('capture', `Tap on mask to place ${which === 'right' ? 'RIGHT' : 'LEFT'} eye`);
+            updateStatus('capture', `Tap on mask to place ${which === 'right' ? 'LEFT' : 'RIGHT'} eye location`);
         }
 
         function exitEyePointMode() {
@@ -2849,13 +2853,6 @@
             placingEye = null;
             document.getElementById('eyeRightBtn').classList.remove('active');
             document.getElementById('eyeLeftBtn').classList.remove('active');
-        }
-
-        function updateEyeButtons() {
-            const rightBtn = document.getElementById('eyeRightBtn');
-            const leftBtn = document.getElementById('eyeLeftBtn');
-            rightBtn.classList.toggle('placed', !!eyePoints.right);
-            leftBtn.classList.toggle('placed', !!eyePoints.left);
         }
 
         // ============================================
@@ -2922,7 +2919,7 @@
 
         function clearEyePoints() {
             eyePoints = { left: null, right: null };
-            updateEyeButtons();
+            exitEyePointMode();
             drawEyePointMarkers();
         }
 
@@ -2932,12 +2929,13 @@
             } else if (placingEye === 'left') {
                 eyePoints.left = { x: canvasX, y: canvasY };
             }
-            updateEyeButtons();
             drawEyePointMarkers();
             exitEyePointMode();
 
             if (eyePoints.left && eyePoints.right) {
                 updateStatus('capture', 'Both eyes placed! Ready to Save.');
+            } else {
+                updateStatus('capture', 'Place the other eye location.');
             }
         }
 
