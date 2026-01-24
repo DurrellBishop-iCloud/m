@@ -3277,39 +3277,50 @@
             if (el.innerHTML.length > 500) el.innerHTML = el.innerHTML.substring(0, 500);
         }
 
-        // Tap on screen to go to next mask (only when UI is hidden)
+        // Tap on screen to change masks
+        // Left 1/4 = previous, Middle 1/2 = random, Right 1/4 = next
         document.getElementById('tapOverlay').addEventListener('click', async (e) => {
-            debug('TAP detected');
-
-            // Only cycle masks when UI is hidden (full screen mode)
-            const isHidden = document.querySelector('.container').classList.contains('ui-hidden');
-            debug('UI hidden: ' + isHidden);
-            if (!isHidden) return;
-
-            debug('Gallery: ' + (galleryManifest ? galleryManifest.masks.length + ' masks' : 'null'));
-
+            // Load gallery if needed
             if (!galleryManifest || galleryManifest.masks.length === 0) {
-                debug('Loading gallery...');
                 await loadGalleryManifest();
             }
 
             if (!galleryManifest || galleryManifest.masks.length === 0) {
-                debug('No masks available');
                 return;
             }
 
-            // Go to next mask, loop back to start
-            const oldIndex = currentMaskIndex;
-            currentMaskIndex = (currentMaskIndex + 1) % galleryManifest.masks.length;
-            debug('Index: ' + oldIndex + ' -> ' + currentMaskIndex);
+            // Determine tap zone
+            const rect = e.target.getBoundingClientRect();
+            const tapX = e.clientX - rect.left;
+            const width = rect.width;
+            const tapPosition = tapX / width;
 
+            const oldIndex = currentMaskIndex;
+            const numMasks = galleryManifest.masks.length;
+
+            if (tapPosition < 0.25) {
+                // Left quarter - previous mask
+                currentMaskIndex = (currentMaskIndex - 1 + numMasks) % numMasks;
+            } else if (tapPosition > 0.75) {
+                // Right quarter - next mask
+                currentMaskIndex = (currentMaskIndex + 1) % numMasks;
+            } else {
+                // Middle half - random mask (but not the same one)
+                if (numMasks > 1) {
+                    let newIndex;
+                    do {
+                        newIndex = Math.floor(Math.random() * numMasks);
+                    } while (newIndex === currentMaskIndex);
+                    currentMaskIndex = newIndex;
+                }
+            }
+
+            // Load the new mask
             const mask = galleryManifest.masks[currentMaskIndex];
-            debug('Loading: ' + (mask ? mask.name : 'undefined'));
             try {
                 await selectGalleryMask(mask);
-                debug('Done loading');
             } catch (err) {
-                debug('LOAD FAILED: ' + err);
+                console.error('Failed to load mask:', err);
             }
         });
 
