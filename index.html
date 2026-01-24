@@ -686,7 +686,7 @@
         <div class="header-bar" id="headerBar">
             <span class="group-name" id="groupNameHeader">Public-masks</span>
             <button class="header-btn" id="galleryBtn">Choose Mask</button>
-            <button class="header-btn" id="makeMaskBtn">Make Mask</button>
+            <button class="header-btn" id="makeMaskBtn">Create Mask</button>
         </div>
 
         <!-- Face Tracking View -->
@@ -884,7 +884,7 @@
         document.getElementById('makeMaskBtn').addEventListener('click', () => {
             // Non-admins can't make masks for public
             if (currentGroup === 'public' && !isAdmin) {
-                alert('Switch to Local-masks or make a New Group-masks to make your own masks');
+                alert('Switch to Local-masks or make a New Group-masks and create your own masks');
                 return;
             }
             switchView('capture');
