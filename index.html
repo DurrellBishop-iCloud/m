@@ -3665,8 +3665,9 @@
         // INITIALIZATION
         // ============================================
 
-        window.addEventListener('load', async () => {
-            document.getElementById('loadingText').textContent = 'Initializing camera...';
+        // Initialize directly (DOM is ready since module uses top-level await)
+        (async () => {
+            document.getElementById('loadingText').textContent = 'Initializing...';
             showLoading('Loading face detection...');
 
             // Check if we should go to capture view FIRST (from group selection)
@@ -3690,7 +3691,7 @@
                 updateStatus('track', 'Error loading: ' + error.message);
                 hideLoading();
             }
-        });
+        })();
     </script>
 </body>
 </html>
