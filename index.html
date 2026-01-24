@@ -939,6 +939,9 @@
             localStorage.setItem('mask_admin', 'true');
         }
 
+        // Check if this is a newly created group (show share modal later)
+        const isNewGroup = urlParams.get('new') === '1';
+
         // Save current group as last used
         localStorage.setItem('mask_last_group', currentGroup);
 
@@ -3483,13 +3486,8 @@
                 hideGroupPicker();
                 showCreateGroupModal((groupName) => {
                     saveGroupToStorage(groupName);
-                    // Show share modal so they can share with friends
-                    currentGroup = groupName;
-                    showShareModal();
-                    // Navigate to group after they close share modal
-                    document.getElementById('shareCancelBtn').addEventListener('click', () => {
-                        switchToGroup(groupName);
-                    }, { once: true });
+                    // Navigate to new group with flag to show share modal
+                    window.location.href = `?group=${groupName}&new=1`;
                 });
             });
 
@@ -3819,6 +3817,16 @@
                 await initializeFaceLandmarker();
                 // Load a random mask after initialization
                 await loadRandomMask();
+
+                // If this is a newly created group, show share modal
+                if (isNewGroup) {
+                    // Clean up the URL (remove &new=1)
+                    history.replaceState(null, '', `?group=${currentGroup}`);
+                    // Show share modal after a brief delay so user sees the group first
+                    setTimeout(() => {
+                        showShareModal();
+                    }, 500);
+                }
             } catch (error) {
                 console.error('Initialization error:', error);
                 updateStatus('track', 'Error loading: ' + error.message);
