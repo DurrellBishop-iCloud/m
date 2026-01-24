@@ -603,6 +603,54 @@
             max-height: 200px;
             overflow-y: auto;
         }
+        .create-group-info {
+            color: #888;
+            font-size: 13px;
+            text-align: center;
+            margin: 0 0 16px 0;
+            line-height: 1.4;
+        }
+        .group-name-input {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            background: #141414;
+            border: 1px solid #888;
+            color: #fff;
+            box-sizing: border-box;
+            margin-bottom: 12px;
+        }
+        .group-name-input:focus {
+            outline: none;
+            border-color: #fff;
+        }
+        .privacy-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 12px;
+            cursor: pointer;
+        }
+        .privacy-toggle input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        .group-preview {
+            background: #0a0a0a;
+            border: 1px solid #555;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 13px;
+            text-align: center;
+            margin-bottom: 16px;
+            color: #aaa;
+        }
+        .group-preview span {
+            color: #fff;
+        }
         .qr-code {
             display: flex;
             justify-content: center;
@@ -651,6 +699,27 @@
                 Share...
             </button>
             <button class="modal-cancel" id="shareCancelBtn">Close</button>
+        </div>
+    </div>
+
+    <!-- Create Group Modal -->
+    <div class="modal-overlay hidden" id="createGroupModal">
+        <div class="modal">
+            <h3>Create New Group</h3>
+            <p class="create-group-info">
+                Anyone with the group link can view and add masks.
+                Use a unique name or add a random code for privacy.
+            </p>
+            <input type="text" id="createGroupNameInput" class="group-name-input" placeholder="Enter group name..." maxlength="30">
+            <label class="privacy-toggle">
+                <input type="checkbox" id="addRandomSuffix" checked>
+                <span>Add random code for privacy</span>
+            </label>
+            <div class="group-preview">
+                Will create: <span id="groupNamePreview">-masks</span>
+            </div>
+            <button class="modal-btn primary" id="confirmCreateGroupBtn">Create Group</button>
+            <button class="modal-cancel" id="cancelCreateGroupBtn">Cancel</button>
         </div>
     </div>
 
@@ -3188,16 +3257,9 @@
 
         // Show create group prompt
         function showCreateGroup() {
-            const groupName = prompt('Enter a name for your new group:');
-            if (!groupName) return;
-
-            const safeName = groupName.toLowerCase().replace(/[^a-z0-9-_]/g, '');
-            if (!safeName) {
-                alert('Please use only letters and numbers');
-                return;
-            }
-
-            saveToGroup(safeName);
+            showCreateGroupModal((groupName) => {
+                saveToGroup(groupName);
+            });
         }
 
         // Save to a group
@@ -3315,6 +3377,79 @@
             }
         }
 
+        // Create Group Modal
+        let createGroupCallback = null;
+
+        function generateRandomCode() {
+            const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
+            let code = '';
+            for (let i = 0; i < 5; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
+        }
+
+        function updateGroupPreview() {
+            const input = document.getElementById('createGroupNameInput');
+            const checkbox = document.getElementById('addRandomSuffix');
+            const preview = document.getElementById('groupNamePreview');
+
+            let name = input.value.toLowerCase().replace(/[^a-z0-9-_]/g, '') || '';
+            if (name && checkbox.checked) {
+                name += '-' + generateRandomCode();
+            }
+            name += '-masks';
+
+            preview.textContent = name;
+            preview.dataset.finalName = name;
+        }
+
+        function showCreateGroupModal(callback) {
+            createGroupCallback = callback;
+            const modal = document.getElementById('createGroupModal');
+            const input = document.getElementById('createGroupNameInput');
+
+            // Reset state
+            input.value = '';
+            document.getElementById('addRandomSuffix').checked = true;
+            updateGroupPreview();
+
+            modal.classList.remove('hidden');
+            input.focus();
+        }
+
+        function hideCreateGroupModal() {
+            document.getElementById('createGroupModal').classList.add('hidden');
+            createGroupCallback = null;
+        }
+
+        function confirmCreateGroup() {
+            const preview = document.getElementById('groupNamePreview');
+            const input = document.getElementById('createGroupNameInput');
+            const baseName = input.value.toLowerCase().replace(/[^a-z0-9-_]/g, '');
+
+            if (!baseName) {
+                alert('Please enter a group name');
+                return;
+            }
+
+            const finalName = preview.dataset.finalName;
+            hideCreateGroupModal();
+
+            if (createGroupCallback) {
+                createGroupCallback(finalName);
+            }
+        }
+
+        // Setup Create Group Modal events
+        document.getElementById('createGroupNameInput').addEventListener('input', updateGroupPreview);
+        document.getElementById('addRandomSuffix').addEventListener('change', updateGroupPreview);
+        document.getElementById('confirmCreateGroupBtn').addEventListener('click', confirmCreateGroup);
+        document.getElementById('cancelCreateGroupBtn').addEventListener('click', hideCreateGroupModal);
+        document.getElementById('createGroupNameInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') confirmCreateGroup();
+        });
+
         // Group Picker Modal (for switching groups only, no edit)
         function showGroupPicker() {
             const modal = document.getElementById('groupPickerModal');
@@ -3345,20 +3480,17 @@
 
             // New group button
             document.getElementById('newGroupPickerBtn').addEventListener('click', () => {
-                const groupName = prompt('Enter a name for your new group:');
-                if (!groupName) {
-                    // User cancelled - modal stays open
-                    return;
-                }
-                const safeName = groupName.toLowerCase().replace(/[^a-z0-9-_]/g, '');
-                if (!safeName) {
-                    alert('Please use only letters and numbers');
-                    return;
-                }
-                const fullName = safeName + '-masks';
-                saveGroupToStorage(fullName);
                 hideGroupPicker();
-                switchToGroup(fullName);
+                showCreateGroupModal((groupName) => {
+                    saveGroupToStorage(groupName);
+                    // Show share modal so they can share with friends
+                    currentGroup = groupName;
+                    showShareModal();
+                    // Navigate to group after they close share modal
+                    document.getElementById('shareCancelBtn').addEventListener('click', () => {
+                        switchToGroup(groupName);
+                    }, { once: true });
+                });
             });
 
             list.querySelectorAll('[data-group]').forEach(btn => {
@@ -3398,14 +3530,9 @@
         document.getElementById('saveToLocalBtn')?.addEventListener('click', saveToPhone);
         document.getElementById('saveToNewGroupBtn')?.addEventListener('click', () => {
             hideSaveModal();
-            const groupName = prompt('Enter a name for your new group:');
-            if (!groupName) return;
-            const safeName = groupName.toLowerCase().replace(/[^a-z0-9-_]/g, '');
-            if (!safeName) {
-                alert('Please use only letters and numbers');
-                return;
-            }
-            saveToGroup(safeName + '-masks');
+            showCreateGroupModal((groupName) => {
+                saveToGroup(groupName);
+            });
         });
         document.getElementById('saveCancelBtn')?.addEventListener('click', hideSaveModal);
 
@@ -3588,15 +3715,10 @@
         });
 
         document.getElementById('newGroupBtn').addEventListener('click', () => {
-            const groupName = prompt('Enter a name for your new group:');
-            if (!groupName) return;
-            const safeName = groupName.toLowerCase().replace(/[^a-z0-9-_]/g, '');
-            if (!safeName) {
-                alert('Please use only letters and numbers');
-                return;
-            }
-            // Add "-masks" suffix to the group name
-            selectGroupAndMake(safeName + '-masks');
+            hideGroupMenu();
+            showCreateGroupModal((groupName) => {
+                selectGroupAndMake(groupName);
+            });
         });
 
         document.getElementById('shareGroupBtn').addEventListener('click', () => {
