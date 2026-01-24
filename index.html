@@ -873,6 +873,15 @@
         // Save current group as last used
         localStorage.setItem('mask_last_group', currentGroup);
 
+        // Save shared groups to picker (not public or local)
+        if (currentGroup !== 'public' && currentGroup !== 'local') {
+            const savedGroups = JSON.parse(localStorage.getItem('mask_groups') || '[]');
+            if (!savedGroups.includes(currentGroup)) {
+                savedGroups.push(currentGroup);
+                localStorage.setItem('mask_groups', JSON.stringify(savedGroups));
+            }
+        }
+
         // Update header bar with group name
         function updateHeader() {
             const groupNameEl = document.getElementById('groupNameHeader');
