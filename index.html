@@ -627,8 +627,8 @@
     <div class="modal-overlay hidden" id="saveModal">
         <div class="modal">
             <h3 style="text-align:center;margin:0 0 16px 0;color:#888;">Save To</h3>
-            <button class="modal-btn" id="saveToPublicBtn" style="display:none;">Public Masks</button>
-            <button class="modal-btn" id="saveToLocalBtn">Local Masks</button>
+            <button class="modal-btn" id="saveToPublicBtn" style="display:none;">Public-masks</button>
+            <button class="modal-btn" id="saveToLocalBtn">Local-masks</button>
             <div id="saveGroupList"></div>
             <button class="modal-btn" id="saveToNewGroupBtn">New Group...</button>
             <button class="modal-cancel" id="saveCancelBtn">Cancel</button>
@@ -667,8 +667,8 @@
     <div class="modal-overlay hidden" id="groupMenuModal">
         <div class="modal">
             <div style="text-align:center;font-size:10px;color:#555;margin-bottom:12px;">v5.1</div>
-            <button class="modal-btn" id="publicGroupBtn">Public Masks</button>
-            <button class="modal-btn" id="localGroupBtn">Local Masks</button>
+            <button class="modal-btn" id="publicGroupBtn">Public-masks</button>
+            <button class="modal-btn" id="localGroupBtn">Local-masks</button>
             <button class="modal-btn" id="newGroupBtn">New Mask Group</button>
             <div id="savedGroupsList"></div>
 
@@ -684,7 +684,7 @@
     <div class="container">
         <!-- Header with group name and buttons -->
         <div class="header-bar" id="headerBar">
-            <span class="group-name" id="groupNameHeader">Public Masks</span>
+            <span class="group-name" id="groupNameHeader">Public-masks</span>
             <button class="header-btn" id="galleryBtn">Choose Mask</button>
             <button class="header-btn" id="makeMaskBtn">Make Mask</button>
         </div>
@@ -869,12 +869,11 @@
             const groupNameEl = document.getElementById('groupNameHeader');
             let name;
             if (currentGroup === 'public') {
-                name = 'Public Masks';
+                name = 'Public-masks';
             } else if (currentGroup === 'local') {
-                name = 'Local Masks';
+                name = 'Local-masks';
             } else {
-                // Capitalize first letter and format nicely
-                name = currentGroup.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                name = currentGroup;
             }
             // Show admin indicator
             groupNameEl.textContent = isAdmin ? '* ' + name : name;
@@ -3078,7 +3077,7 @@
             }
         }
 
-        // Save to local storage (for Local Masks group)
+        // Save to local storage (for Local-masks group)
         function saveToPhone() {
             hideSaveModal();
 
@@ -3124,7 +3123,7 @@
             editingMaskGroup = null;
             document.getElementById('retakeBtn').textContent = 'Retake';
 
-            updateStatus('capture', `"${maskName}" saved to Local Masks!`);
+            updateStatus('capture', `"${maskName}" saved to Local-masks!`);
 
             // Return to play mode after a brief delay
             setTimeout(() => {
@@ -3290,14 +3289,17 @@
 
             // New group button
             document.getElementById('newGroupPickerBtn').addEventListener('click', () => {
-                hideGroupPicker();
                 const groupName = prompt('Enter a name for your new group:');
-                if (!groupName) return;
+                if (!groupName) {
+                    // User cancelled - modal stays open
+                    return;
+                }
                 const safeName = groupName.toLowerCase().replace(/[^a-z0-9-_]/g, '');
                 if (!safeName) {
                     alert('Please use only letters and numbers');
                     return;
                 }
+                hideGroupPicker();
                 switchToGroup(safeName + '-masks');
             });
 
