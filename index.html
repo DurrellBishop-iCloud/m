@@ -682,9 +682,139 @@
             text-align: center;
             margin: 12px 0;
         }
+
+        /* ============================================
+           TITLE SCREEN MODULE - KEEP SEPARATE
+           ============================================ */
+        #titleOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: opacity 0.5s ease;
+        }
+
+        #titleOverlay.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #titleOverlay.hidden {
+            display: none;
+        }
+
+        #titleImage {
+            max-width: 90%;
+            max-height: 80%;
+            object-fit: contain;
+        }
+
+        #titleTapHint {
+            position: absolute;
+            bottom: 40px;
+            color: #666;
+            font-size: 14px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        /* Title Admin Panel */
+        #titleAdminPanel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 10000;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        #titleAdminPanel.hidden {
+            display: none;
+        }
+
+        .title-admin-section {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .title-admin-section h2 {
+            color: #888;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .title-preview {
+            width: 100%;
+            max-height: 300px;
+            object-fit: contain;
+            border: 1px solid #444;
+            margin: 10px 0;
+            background: #111;
+        }
+
+        .title-admin-btn {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            background: #333;
+            border: 1px solid #666;
+            color: #fff;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .title-admin-btn.primary {
+            background: #4a4;
+            border-color: #4a4;
+        }
+
+        .title-admin-btn:disabled {
+            opacity: 0.5;
+        }
     </style>
 </head>
 <body>
+    <!-- ============================================
+         TITLE SCREEN MODULE - KEEP SEPARATE
+         ============================================ -->
+    <div id="titleOverlay" class="hidden">
+        <img id="titleImage" src="" alt="Title">
+        <div id="titleTapHint">Tap to start</div>
+    </div>
+
+    <!-- Title Admin Panel (accessed via ?title=admin) -->
+    <div id="titleAdminPanel" class="hidden">
+        <div class="title-admin-section">
+            <h2>Title Screen Manager</h2>
+            <p style="color:#666;text-align:center;margin-bottom:20px;">Upload an image to show before the app loads</p>
+
+            <img id="titlePreviewImg" class="title-preview" src="" alt="Preview">
+
+            <input type="file" id="titleFileInput" accept="image/*" style="display:none;">
+            <button class="title-admin-btn" id="titleSelectBtn">Select Image</button>
+            <button class="title-admin-btn primary" id="titleUploadBtn" disabled>Upload to Server</button>
+            <button class="title-admin-btn" id="titleRemoveBtn">Remove Current Title</button>
+            <button class="title-admin-btn" id="titleCloseBtn">Close Admin</button>
+
+            <div id="titleAdminStatus" style="color:#888;text-align:center;margin-top:20px;"></div>
+        </div>
+    </div>
+
     <!-- Save Modal -->
     <div class="modal-overlay hidden" id="saveModal">
         <div class="modal">
@@ -3930,11 +4060,285 @@
         }
 
         // ============================================
+        // TITLE SCREEN MODULE - KEEP SEPARATE
+        // ============================================
+
+        const TitleModule = {
+            TITLE_PATH: 'title/title.json',
+            ASSETS_PATH: 'title/',
+
+            config: null,
+            isAdmin: false,
+            pendingImage: null,
+
+            async init() {
+                const urlParams = new URLSearchParams(window.location.search);
+
+                // Check for admin mode
+                if (urlParams.get('title') === 'admin') {
+                    this.isAdmin = true;
+                    this.showAdminPanel();
+                    return false; // Don't continue to main app
+                }
+
+                // Try to load title config
+                try {
+                    this.config = await this.loadConfig();
+                    if (this.config && this.config.image) {
+                        await this.showTitleScreen();
+                        return true; // Title was shown, continue to app after
+                    }
+                } catch (e) {
+                    console.log('No title configured:', e.message);
+                }
+
+                return true; // Continue to main app
+            },
+
+            async loadConfig() {
+                const response = await fetch(`https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_BRANCH}/${this.TITLE_PATH}?_=${Date.now()}`);
+                if (!response.ok) return null;
+                return await response.json();
+            },
+
+            async showTitleScreen() {
+                return new Promise((resolve) => {
+                    const overlay = document.getElementById('titleOverlay');
+                    const img = document.getElementById('titleImage');
+
+                    const imageUrl = `https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_BRANCH}/${this.config.image}?_=${Date.now()}`;
+                    img.src = imageUrl;
+
+                    img.onload = () => {
+                        overlay.classList.remove('hidden');
+
+                        const dismiss = () => {
+                            overlay.removeEventListener('click', dismiss);
+                            overlay.classList.add('fade-out');
+                            setTimeout(() => {
+                                overlay.classList.add('hidden');
+                                resolve();
+                            }, 500);
+                        };
+
+                        overlay.addEventListener('click', dismiss);
+                    };
+
+                    img.onerror = () => {
+                        console.error('Failed to load title image');
+                        resolve();
+                    };
+                });
+            },
+
+            showAdminPanel() {
+                document.getElementById('titleAdminPanel').classList.remove('hidden');
+                this.loadCurrentTitle();
+                this.setupAdminEvents();
+            },
+
+            async loadCurrentTitle() {
+                const preview = document.getElementById('titlePreviewImg');
+                const status = document.getElementById('titleAdminStatus');
+
+                try {
+                    const config = await this.loadConfig();
+                    if (config && config.image) {
+                        preview.src = `https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_BRANCH}/${config.image}?_=${Date.now()}`;
+                        status.textContent = 'Current title loaded';
+                    } else {
+                        preview.src = '';
+                        status.textContent = 'No title image configured';
+                    }
+                } catch (e) {
+                    preview.src = '';
+                    status.textContent = 'No title configured';
+                }
+            },
+
+            setupAdminEvents() {
+                const fileInput = document.getElementById('titleFileInput');
+                const selectBtn = document.getElementById('titleSelectBtn');
+                const uploadBtn = document.getElementById('titleUploadBtn');
+                const removeBtn = document.getElementById('titleRemoveBtn');
+                const closeBtn = document.getElementById('titleCloseBtn');
+                const preview = document.getElementById('titlePreviewImg');
+                const status = document.getElementById('titleAdminStatus');
+
+                selectBtn.addEventListener('click', () => fileInput.click());
+
+                fileInput.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        preview.src = ev.target.result;
+                        this.pendingImage = ev.target.result;
+                        uploadBtn.disabled = false;
+                        status.textContent = 'Image selected - ready to upload';
+                    };
+                    reader.readAsDataURL(file);
+                });
+
+                uploadBtn.addEventListener('click', async () => {
+                    if (!this.pendingImage) return;
+                    await this.uploadTitle();
+                });
+
+                removeBtn.addEventListener('click', async () => {
+                    await this.removeTitle();
+                });
+
+                closeBtn.addEventListener('click', () => {
+                    window.location.href = window.location.pathname;
+                });
+            },
+
+            async uploadTitle() {
+                const status = document.getElementById('titleAdminStatus');
+                const uploadBtn = document.getElementById('titleUploadBtn');
+
+                uploadBtn.disabled = true;
+                status.textContent = 'Uploading...';
+
+                try {
+                    const token = prompt('Enter GitHub token:');
+                    if (!token) {
+                        status.textContent = 'Upload cancelled';
+                        uploadBtn.disabled = false;
+                        return;
+                    }
+
+                    // Upload image
+                    const imagePath = `${this.ASSETS_PATH}title-image.png`;
+                    const imageBase64 = this.pendingImage.replace(/^data:image\/\w+;base64,/, '');
+
+                    // Check if image exists (to get SHA for update)
+                    let imageSha = null;
+                    try {
+                        const existing = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${imagePath}?ref=${GITHUB_BRANCH}`, {
+                            headers: { 'Authorization': `token ${token}` }
+                        });
+                        if (existing.ok) {
+                            const data = await existing.json();
+                            imageSha = data.sha;
+                        }
+                    } catch (e) {}
+
+                    // Upload image
+                    const imageBody = {
+                        message: 'Update title image',
+                        content: imageBase64,
+                        branch: GITHUB_BRANCH
+                    };
+                    if (imageSha) imageBody.sha = imageSha;
+
+                    const imgResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${imagePath}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `token ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(imageBody)
+                    });
+
+                    if (!imgResponse.ok) throw new Error('Failed to upload image');
+
+                    // Upload config
+                    const config = { image: imagePath, updated: Date.now() };
+                    const configBase64 = btoa(JSON.stringify(config, null, 2));
+
+                    let configSha = null;
+                    try {
+                        const existing = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${this.TITLE_PATH}?ref=${GITHUB_BRANCH}`, {
+                            headers: { 'Authorization': `token ${token}` }
+                        });
+                        if (existing.ok) {
+                            const data = await existing.json();
+                            configSha = data.sha;
+                        }
+                    } catch (e) {}
+
+                    const configBody = {
+                        message: 'Update title config',
+                        content: configBase64,
+                        branch: GITHUB_BRANCH
+                    };
+                    if (configSha) configBody.sha = configSha;
+
+                    const configResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${this.TITLE_PATH}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `token ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(configBody)
+                    });
+
+                    if (!configResponse.ok) throw new Error('Failed to upload config');
+
+                    status.textContent = 'Title uploaded successfully!';
+                    this.pendingImage = null;
+
+                } catch (error) {
+                    console.error('Upload error:', error);
+                    status.textContent = 'Upload failed: ' + error.message;
+                    uploadBtn.disabled = false;
+                }
+            },
+
+            async removeTitle() {
+                const status = document.getElementById('titleAdminStatus');
+                const preview = document.getElementById('titlePreviewImg');
+
+                const token = prompt('Enter GitHub token to remove title:');
+                if (!token) return;
+
+                status.textContent = 'Removing...';
+
+                try {
+                    // Delete config file
+                    const configResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${this.TITLE_PATH}?ref=${GITHUB_BRANCH}`, {
+                        headers: { 'Authorization': `token ${token}` }
+                    });
+
+                    if (configResponse.ok) {
+                        const configData = await configResponse.json();
+                        await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${this.TITLE_PATH}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'Authorization': `token ${token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                message: 'Remove title config',
+                                sha: configData.sha,
+                                branch: GITHUB_BRANCH
+                            })
+                        });
+                    }
+
+                    preview.src = '';
+                    status.textContent = 'Title removed';
+
+                } catch (error) {
+                    console.error('Remove error:', error);
+                    status.textContent = 'Remove failed: ' + error.message;
+                }
+            }
+        };
+
+        // ============================================
         // INITIALIZATION
         // ============================================
 
         // Initialize directly (DOM is ready since module uses top-level await)
         (async () => {
+            // Check title module first
+            const continueToApp = await TitleModule.init();
+            if (!continueToApp) return; // Admin mode, don't load app
+
             document.getElementById('loadingText').textContent = 'Initializing...';
             showLoading('Loading face detection...');
 
