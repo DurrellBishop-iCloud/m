@@ -872,6 +872,8 @@
         <div class="modal">
             <h3>Choose a Group</h3>
             <div class="group-list" id="groupPickerList"></div>
+            <div class="modal-divider" id="pickerShareSection" style="display:none;"></div>
+            <button class="modal-btn" id="pickerShareBtn" style="display:none;">Share This Group</button>
             <button class="modal-cancel" id="groupPickerCancelBtn">Cancel</button>
         </div>
     </div>
@@ -3647,6 +3649,21 @@
                 });
             });
 
+            // Show share button if on a custom group (not public/local)
+            const shareSection = document.getElementById('pickerShareSection');
+            const shareBtn = document.getElementById('pickerShareBtn');
+            if (currentGroup !== 'public' && currentGroup !== 'local') {
+                shareSection.style.display = '';
+                shareBtn.style.display = '';
+                shareBtn.onclick = () => {
+                    hideGroupPicker();
+                    showShareModal();
+                };
+            } else {
+                shareSection.style.display = 'none';
+                shareBtn.style.display = 'none';
+            }
+
             modal.classList.remove('hidden');
         }
 
@@ -3983,7 +4000,9 @@
         document.getElementById('newGroupBtn').addEventListener('click', () => {
             hideGroupMenu();
             showCreateGroupModal((groupName) => {
-                selectGroupAndMake(groupName);
+                saveGroupToStorage(groupName);
+                // Navigate to new group with flag to show share modal and go to capture
+                window.location.href = `?group=${groupName}&new=1#capture`;
             });
         });
 
@@ -4081,11 +4100,17 @@
                     return false; // Don't continue to main app
                 }
 
+                // Skip title if already seen this session (e.g., switching groups)
+                if (sessionStorage.getItem('title_seen')) {
+                    return true;
+                }
+
                 // Try to load title config
                 try {
                     this.config = await this.loadConfig();
                     if (this.config && this.config.configured && this.config.image) {
                         await this.showTitleScreen();
+                        sessionStorage.setItem('title_seen', '1');
                         return true; // Title was shown, continue to app after
                     }
                 } catch (e) {
