@@ -851,10 +851,9 @@
     <!-- Share Group Modal -->
     <div class="modal-overlay hidden" id="shareModal">
         <div class="modal">
-            <h3>Scan or share</h3>
             <button class="modal-btn primary" id="shareLinkBtn">
                 <span class="icon">📤</span>
-                Share
+                <span id="shareButtonText">Share with friends</span>
             </button>
             <div class="share-url" id="shareUrl"></div>
             <div class="qr-code" id="qrCode"></div>
@@ -3619,6 +3618,11 @@
             const modal = document.getElementById('shareModal');
             const urlEl = document.getElementById('shareUrl');
             const qrEl = document.getElementById('qrCode');
+            const btnText = document.getElementById('shareButtonText');
+
+            // Set button text based on group
+            const shareName = currentGroup === 'public' ? 'Mask Maker' : currentGroup;
+            btnText.textContent = `Share ${shareName} with friends`;
 
             const shareUrl = `https://dbgh.uk/m?group=${currentGroup}`;
             urlEl.textContent = shareUrl;
