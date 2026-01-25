@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "masks": [
+    {
+      "id": "mask-1769351052661",
+      "name": "iPhone-Jan25-1424",
+      "image": "groups/pig-ewbky-masks/images/mask-1769351052661.png",
+      "anchors": {
+        "leftEye": {
+          "x": 0.6608623548922056,
+          "y": 0.4141851414578687
+        },
+        "rightEye": {
+          "x": 0.32918739635157546,
+          "y": 0.42351363563484773
+        }
+      }
+    }
+  ]
+}
