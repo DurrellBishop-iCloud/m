@@ -1121,6 +1121,8 @@
         let placingEye = null;  // 'left', 'right', or null
         let eraseMode = false;
         let isErasing = false;
+        let eraserSize = 25;
+        let savedToleranceValue = 60;
         let eyePoints = { left: null, right: null };
 
         // Current mask state (after background removal and hole cuts)
@@ -3096,6 +3098,17 @@
             if (currentMaskData && previewCtx) {
                 previewCtx.putImageData(currentMaskData, 0, 0);
             }
+
+            // Switch slider to eraser size
+            savedToleranceValue = parseInt(document.getElementById('toleranceSlider').value);
+            document.querySelector('#toleranceRow label').textContent = 'Size:';
+            const slider = document.getElementById('toleranceSlider');
+            slider.min = 10;
+            slider.max = 100;
+            slider.value = eraserSize;
+            document.getElementById('toleranceValue').textContent = eraserSize;
+            document.getElementById('toleranceRow').classList.remove('hidden');
+
             updateStatus('capture', 'Drag finger to erase. Tap Erase again to exit.');
         }
 
@@ -3110,6 +3123,15 @@
             }
             // Redraw markers on top
             drawEyePointMarkers();
+
+            // Restore slider to tolerance
+            document.querySelector('#toleranceRow label').textContent = 'Tolerance:';
+            const slider = document.getElementById('toleranceSlider');
+            slider.min = 10;
+            slider.max = 150;
+            slider.value = savedToleranceValue;
+            document.getElementById('toleranceValue').textContent = savedToleranceValue;
+
             updateStatus('capture', 'Erase complete');
         }
 
@@ -3140,7 +3162,7 @@
             previewCtx.save();
             previewCtx.globalCompositeOperation = 'destination-out';
             previewCtx.beginPath();
-            previewCtx.arc(x, y, 25, 0, Math.PI * 2);
+            previewCtx.arc(x, y, eraserSize, 0, Math.PI * 2);
             previewCtx.fill();
             previewCtx.restore();
         }
@@ -3275,9 +3297,17 @@
             previewCtx.stroke();
         }
 
-        // Tolerance slider - live update as you drag
+        // Tolerance/Size slider - live update as you drag
         document.getElementById('toleranceSlider').addEventListener('input', (e) => {
             document.getElementById('toleranceValue').textContent = e.target.value;
+
+            // If in erase mode, update eraser size
+            if (eraseMode) {
+                eraserSize = parseInt(e.target.value);
+                return;
+            }
+
+            // Otherwise update tolerance and re-run background removal
             if (originalImageData && paperColor) {
                 removeBackground();
                 // Redraw eye point markers if any
