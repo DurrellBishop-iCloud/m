@@ -32,21 +32,6 @@
       }
     },
     {
-      "id": "mask-1769361309911",
-      "name": "iPhone-Jan25-1715",
-      "image": "groups/pig-ewbky-masks/images/mask-1769361309911.png",
-      "anchors": {
-        "leftEye": {
-          "x": 0.5903814262023217,
-          "y": 0.4696896818108939
-        },
-        "rightEye": {
-          "x": 0.4112769485903814,
-          "y": 0.4766860524436281
-        }
-      }
-    },
-    {
       "id": "mask-1769361370335",
       "name": "iPhone-Jan25-1547",
       "image": "groups/pig-ewbky-masks/images/mask-1769361370335.png",
