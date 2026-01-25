@@ -966,6 +966,7 @@
                 <button class="control-btn" id="retakeBtn">Retake</button>
                 <button class="control-btn" id="eraseBtn">Erase</button>
                 <button class="control-btn" id="createTextureBtn">Change Texture</button>
+                <button class="control-btn" id="strokeBtn">Stroke</button>
             </div>
             <div class="controls hidden" id="createTextureControls">
                 <button class="control-btn" id="cancelCreateTextureBtn">Cancel</button>
@@ -1072,6 +1073,10 @@
         // Loaded mask for face tracking
         let loadedMask = null;  // { image: HTMLImageElement, anchors: { leftEye, rightEye } }
         let maskImage = null;
+
+        // Stroke effect
+        let strokeEnabled = false;
+        let strokeCanvas = null;  // White silhouette for stroke effect
 
         // Gallery
         let galleryManifest = null;
@@ -3064,8 +3069,23 @@
         function drawEyePointMarkers() {
             if (!previewCanvas || !previewCtx || !currentMaskData) return;
 
-            // Redraw the current mask state (preserves hole cuts)
-            previewCtx.putImageData(currentMaskData, 0, 0);
+            // Clear canvas
+            previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+
+            // Create temp canvas with mask for drawing
+            const maskCanvas = document.createElement('canvas');
+            maskCanvas.width = previewCanvas.width;
+            maskCanvas.height = previewCanvas.height;
+            const maskCtx = maskCanvas.getContext('2d');
+            maskCtx.putImageData(currentMaskData, 0, 0);
+
+            // Draw stroke effect if enabled (draw BEFORE the mask so it appears behind)
+            if (strokeEnabled) {
+                drawStrokeEffect(maskCanvas);
+            }
+
+            // Draw the mask on top (using drawImage to preserve transparency compositing)
+            previewCtx.drawImage(maskCanvas, 0, 0);
 
             // Draw eye point markers (green)
             if (eyePoints.left) {
@@ -3074,6 +3094,32 @@
             if (eyePoints.right) {
                 drawMarker(eyePoints.right.x, eyePoints.right.y, '#00ff00');
             }
+        }
+
+        function drawStrokeEffect(maskCanvas) {
+            if (!maskCanvas || !previewCtx) return;
+
+            // Create white silhouette from mask
+            const silhouette = document.createElement('canvas');
+            silhouette.width = maskCanvas.width;
+            silhouette.height = maskCanvas.height;
+            const silCtx = silhouette.getContext('2d');
+            silCtx.drawImage(maskCanvas, 0, 0);
+            silCtx.globalCompositeOperation = 'source-in';
+            silCtx.fillStyle = 'white';
+            silCtx.fillRect(0, 0, silhouette.width, silhouette.height);
+
+            // Draw white silhouette offset in 8 directions (creates stroke)
+            const strokeWidth = 3;
+            const offsets = [
+                [-strokeWidth, 0], [strokeWidth, 0], [0, -strokeWidth], [0, strokeWidth],
+                [-strokeWidth, -strokeWidth], [strokeWidth, -strokeWidth],
+                [-strokeWidth, strokeWidth], [strokeWidth, strokeWidth]
+            ];
+
+            offsets.forEach(([ox, oy]) => {
+                previewCtx.drawImage(silhouette, ox, oy);
+            });
         }
 
         function drawMarker(x, y, color) {
@@ -3905,6 +3951,13 @@
             } else {
                 enterEraseMode();
             }
+        });
+
+        // Stroke button
+        document.getElementById('strokeBtn').addEventListener('click', () => {
+            strokeEnabled = !strokeEnabled;
+            document.getElementById('strokeBtn').classList.toggle('active', strokeEnabled);
+            drawEyePointMarkers();
         });
 
         // Clear Points button
