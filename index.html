@@ -2212,10 +2212,8 @@
             updateStatus('capture', 'Publishing to group: ' + currentGroup + '...');
 
             try {
-                // Redraw canvas WITHOUT markers
-                if (currentMaskData) {
-                    previewCtx.putImageData(currentMaskData, 0, 0);
-                }
+                // Redraw canvas with stroke if enabled, WITHOUT markers
+                drawMaskForSave();
 
                 // Get PNG as base64 data URL
                 const imageDataUrl = previewCanvas.toDataURL('image/png');
@@ -2908,10 +2906,8 @@
         }
 
         function saveMask() {
-            // Redraw canvas WITHOUT markers before saving
-            if (currentMaskData) {
-                previewCtx.putImageData(currentMaskData, 0, 0);
-            }
+            // Redraw canvas with stroke if enabled, WITHOUT markers
+            drawMaskForSave();
 
             // Convert canvas to data URL (clean, no markers)
             const dataUrl = previewCanvas.toDataURL('image/png');
@@ -3110,7 +3106,7 @@
             silCtx.fillRect(0, 0, silhouette.width, silhouette.height);
 
             // Draw white silhouette offset in 8 directions (creates stroke)
-            const strokeWidth = 3;
+            const strokeWidth = 4;
             const offsets = [
                 [-strokeWidth, 0], [strokeWidth, 0], [0, -strokeWidth], [0, strokeWidth],
                 [-strokeWidth, -strokeWidth], [strokeWidth, -strokeWidth],
@@ -3120,6 +3116,29 @@
             offsets.forEach(([ox, oy]) => {
                 previewCtx.drawImage(silhouette, ox, oy);
             });
+        }
+
+        // Draw mask with stroke (if enabled) for saving - returns the canvas ready for toDataURL
+        function drawMaskForSave() {
+            if (!previewCanvas || !previewCtx || !currentMaskData) return;
+
+            // Clear canvas
+            previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+
+            // Create temp canvas with mask
+            const maskCanvas = document.createElement('canvas');
+            maskCanvas.width = previewCanvas.width;
+            maskCanvas.height = previewCanvas.height;
+            const maskCtx = maskCanvas.getContext('2d');
+            maskCtx.putImageData(currentMaskData, 0, 0);
+
+            // Draw stroke if enabled
+            if (strokeEnabled) {
+                drawStrokeEffect(maskCanvas);
+            }
+
+            // Draw the mask on top
+            previewCtx.drawImage(maskCanvas, 0, 0);
         }
 
         function drawMarker(x, y, color) {
@@ -3298,10 +3317,8 @@
                 return;
             }
 
-            // Redraw canvas WITHOUT markers
-            if (currentMaskData) {
-                previewCtx.putImageData(currentMaskData, 0, 0);
-            }
+            // Redraw canvas with stroke if enabled, WITHOUT markers
+            drawMaskForSave();
 
             const imageDataUrl = previewCanvas.toDataURL('image/png');
 
@@ -3400,8 +3417,8 @@
 
                 const maskName = generateMaskName();
 
-                // Redraw canvas WITHOUT markers
-                previewCtx.putImageData(currentMaskData, 0, 0);
+                // Redraw canvas with stroke if enabled, WITHOUT markers
+                drawMaskForSave();
 
                 const imageDataUrl = previewCanvas.toDataURL('image/png');
                 const maskId = 'local-' + Date.now();
@@ -3477,10 +3494,8 @@
             updateStatus('capture', 'Saving to ' + groupName + '...');
 
             try {
-                // Redraw canvas WITHOUT markers
-                if (currentMaskData) {
-                    previewCtx.putImageData(currentMaskData, 0, 0);
-                }
+                // Redraw canvas with stroke if enabled, WITHOUT markers
+                drawMaskForSave();
 
                 const imageDataUrl = previewCanvas.toDataURL('image/png');
 
