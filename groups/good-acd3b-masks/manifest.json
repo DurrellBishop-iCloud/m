@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "masks": [
+    {
+      "id": "mask-1769341770366",
+      "name": "iPhone-Jan25-1149",
+      "image": "groups/good-acd3b-masks/images/mask-1769341770366.png",
+      "anchors": {
+        "leftEye": {
+          "x": 0.5878938640132669,
+          "y": 0.621744136895652
+        },
+        "rightEye": {
+          "x": 0.37893864013267,
+          "y": 0.6166134650983135
+        }
+      }
+    }
+  ]
+}
