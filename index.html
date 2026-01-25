@@ -3670,10 +3670,16 @@
 
                 const imageDataUrl = previewCanvas.toDataURL('image/png');
 
+                // Debug: show image size
+                const sizeKB = Math.round(imageDataUrl.length / 1024);
+                console.log(`Image size: ${sizeKB}KB, dimensions: ${previewCanvas.width}x${previewCanvas.height}`);
+
                 const anchors = {
                     leftEye: { x: eyePoints.left.x / previewCanvas.width, y: eyePoints.left.y / previewCanvas.height },
                     rightEye: { x: eyePoints.right.x / previewCanvas.width, y: eyePoints.right.y / previewCanvas.height }
                 };
+
+                updateStatus('capture', `Uploading ${sizeKB}KB to ${groupName}...`);
 
                 const response = await fetch(`${WORKER_URL}/upload`, {
                     method: 'POST',
@@ -3714,6 +3720,7 @@
                 console.error('Save error:', error);
                 drawEyePointMarkers();
                 updateStatus('capture', 'Save failed: ' + error.message);
+                alert('Save failed: ' + error.message);
             }
         }
 
