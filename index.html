@@ -4213,22 +4213,22 @@
 
         // Create built-in censor bar mask for empty groups
         function loadCensorBarMask() {
-            // Create censor bar image
+            // Create censor bar image (double size)
             const canvas = document.createElement('canvas');
-            canvas.width = 400;
-            canvas.height = 80;
+            canvas.width = 800;
+            canvas.height = 160;
             const ctx = canvas.getContext('2d');
 
             // Black bar
             ctx.fillStyle = 'black';
-            ctx.fillRect(0, 0, 400, 80);
+            ctx.fillRect(0, 0, 800, 160);
 
             // White text
             ctx.fillStyle = 'white';
-            ctx.font = 'bold 20px sans-serif';
+            ctx.font = 'bold 40px sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText('Empty group - Create Mask', 200, 40);
+            ctx.fillText('Empty group - Create Mask', 400, 80);
 
             // Create image from canvas
             const img = new Image();
@@ -4237,12 +4237,12 @@
             img.onload = () => {
                 maskImage = img;
                 loadedMask = {
-                    width: 400,
-                    height: 80,
+                    width: 800,
+                    height: 160,
                     anchors: {
-                        // Eyes positioned at 25% and 75% horizontally, centered vertically
-                        leftEye: { x: 0.25, y: 0.5 },
-                        rightEye: { x: 0.75, y: 0.5 }
+                        // Swapped: leftEye on right side, rightEye on left side
+                        leftEye: { x: 0.75, y: 0.5 },
+                        rightEye: { x: 0.25, y: 0.5 }
                     }
                 };
             };
