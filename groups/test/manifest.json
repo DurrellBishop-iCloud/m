@@ -2,23 +2,6 @@
   "version": 1,
   "masks": [
     {
-      "id": "mask-1769180561059",
-      "name": "My Mask",
-      "image": "groups/test/images/mask-1769180561059.png",
-      "anchors": {
-        "leftEye": {
-          "x": 0.4850746268656717,
-          "y": 0.5918929555293192
-        },
-        "rightEye": {
-          "x": 0.6218905472636816,
-          "y": 0.5904936814027724
-        },
-        "leftMouth": null,
-        "rightMouth": null
-      }
-    },
-    {
       "id": "mask-1769180597568",
       "name": "My Mask",
       "image": "groups/test/images/mask-1769180597568.png",
