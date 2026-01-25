@@ -1390,11 +1390,7 @@
         }
 
         function drawMaskOverlay(landmarks) {
-            // If no mask, show "Empty group" placeholder over eyes
-            if (!loadedMask || !maskImage) {
-                drawEmptyGroupPlaceholder(landmarks);
-                return;
-            }
+            if (!loadedMask || !maskImage) return;
 
             const w = trackCanvas.width;
             const h = trackCanvas.height;
@@ -1513,48 +1509,6 @@
                 loadedMask.width,
                 loadedMask.height
             );
-
-            trackCtx.restore();
-        }
-
-        function drawEmptyGroupPlaceholder(landmarks) {
-            const w = trackCanvas.width;
-            const h = trackCanvas.height;
-
-            // Get eye positions (mirrored for selfie view)
-            const leftEye = {
-                x: (1 - landmarks[LEFT_EYE_CENTER].x) * w,
-                y: landmarks[LEFT_EYE_CENTER].y * h
-            };
-            const rightEye = {
-                x: (1 - landmarks[RIGHT_EYE_CENTER].x) * w,
-                y: landmarks[RIGHT_EYE_CENTER].y * h
-            };
-
-            // Calculate center and angle
-            const centerX = (leftEye.x + rightEye.x) / 2;
-            const centerY = (leftEye.y + rightEye.y) / 2;
-            const eyeDist = Math.sqrt(Math.pow(rightEye.x - leftEye.x, 2) + Math.pow(rightEye.y - leftEye.y, 2));
-            const angle = Math.atan2(rightEye.y - leftEye.y, rightEye.x - leftEye.x);
-
-            // Box dimensions based on eye distance
-            const boxWidth = eyeDist * 2.2;
-            const boxHeight = eyeDist * 0.5;
-
-            trackCtx.save();
-            trackCtx.translate(centerX, centerY);
-            trackCtx.rotate(angle);
-
-            // Draw black box
-            trackCtx.fillStyle = 'black';
-            trackCtx.fillRect(-boxWidth / 2, -boxHeight / 2, boxWidth, boxHeight);
-
-            // Draw white text
-            trackCtx.fillStyle = 'white';
-            trackCtx.font = `bold ${boxHeight * 0.4}px sans-serif`;
-            trackCtx.textAlign = 'center';
-            trackCtx.textBaseline = 'middle';
-            trackCtx.fillText('Empty group - Create Mask', 0, 0);
 
             trackCtx.restore();
         }
