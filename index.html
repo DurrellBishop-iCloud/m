@@ -2095,29 +2095,46 @@
                 // Switch to capture view (camera won't start due to isEditingExistingMask flag)
                 switchView('capture', true);
 
+                // Downsample if needed, calculate scale factor
+                let width = img.width;
+                let height = img.height;
+                let scale = 1;
+
+                if (width > MAX_IMAGE_SIZE || height > MAX_IMAGE_SIZE) {
+                    if (width > height) {
+                        scale = MAX_IMAGE_SIZE / width;
+                        height = Math.round(height * scale);
+                        width = MAX_IMAGE_SIZE;
+                    } else {
+                        scale = MAX_IMAGE_SIZE / height;
+                        width = Math.round(width * scale);
+                        height = MAX_IMAGE_SIZE;
+                    }
+                }
+
                 // Set up preview canvas
                 previewCanvas = document.getElementById('previewCanvas');
                 previewCtx = previewCanvas.getContext('2d', { willReadFrequently: true });
-                previewCanvas.width = img.width;
-                previewCanvas.height = img.height;
-                previewCtx.drawImage(img, 0, 0);
+                previewCanvas.width = width;
+                previewCanvas.height = height;
+                previewCtx.drawImage(img, 0, 0, width, height);
 
                 // Save current state
                 currentMaskData = previewCtx.getImageData(0, 0, previewCanvas.width, previewCanvas.height);
 
-                // Load anchors as eye points
+                // Load anchors as eye points (scaled to new dimensions)
                 eyePoints = { left: null, right: null };
                 if (mask.anchors) {
                     if (mask.anchors.leftEye) {
                         eyePoints.left = {
-                            x: mask.anchors.leftEye.x * img.width,
-                            y: mask.anchors.leftEye.y * img.height
+                            x: mask.anchors.leftEye.x * width,
+                            y: mask.anchors.leftEye.y * height
                         };
                     }
                     if (mask.anchors.rightEye) {
                         eyePoints.right = {
-                            x: mask.anchors.rightEye.x * img.width,
-                            y: mask.anchors.rightEye.y * img.height
+                            x: mask.anchors.rightEye.x * width,
+                            y: mask.anchors.rightEye.y * height
                         };
                     }
                 }
@@ -2135,7 +2152,8 @@
                 // Draw markers
                 drawEyePointMarkers();
 
-                updateStatus('capture', 'Editing mask - tap to adjust anchors, then Save');
+                const sizeNote = scale < 1 ? ` (downsampled to ${width}x${height})` : '';
+                updateStatus('capture', `Editing mask${sizeNote} - tap to adjust anchors, then Save`);
             };
             img.src = imageUrl;
         }
