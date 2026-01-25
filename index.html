@@ -692,7 +692,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: #000;
+            background: transparent;
             z-index: 9999;
             display: flex;
             flex-direction: column;
@@ -4173,19 +4173,18 @@
                     return true;
                 }
 
-                // Try to load title config
+                // Try to load title config - don't wait for click, just show it
                 try {
                     this.config = await this.loadConfig();
                     if (this.config && this.config.configured && this.config.image) {
-                        await this.showTitleScreen();
+                        this.showTitleScreen(); // Don't await - app loads behind
                         sessionStorage.setItem('title_seen', '1');
-                        return true; // Title was shown, continue to app after
                     }
                 } catch (e) {
                     console.log('No title configured:', e.message);
                 }
 
-                return true; // Continue to main app
+                return true; // Continue to main app immediately
             },
 
             async loadConfig() {
@@ -4194,34 +4193,30 @@
                 return await response.json();
             },
 
-            async showTitleScreen() {
-                return new Promise((resolve) => {
-                    const overlay = document.getElementById('titleOverlay');
-                    const img = document.getElementById('titleImage');
+            showTitleScreen() {
+                const overlay = document.getElementById('titleOverlay');
+                const img = document.getElementById('titleImage');
 
-                    const imageUrl = `https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_BRANCH}/${this.config.image}?_=${Date.now()}`;
-                    img.src = imageUrl;
+                const imageUrl = `https://raw.githubusercontent.com/${GITHUB_REPO}/${GITHUB_BRANCH}/${this.config.image}?_=${Date.now()}`;
+                img.src = imageUrl;
 
-                    img.onload = () => {
-                        overlay.classList.remove('hidden');
+                img.onload = () => {
+                    overlay.classList.remove('hidden');
 
-                        const dismiss = () => {
-                            overlay.removeEventListener('click', dismiss);
-                            overlay.classList.add('fade-out');
-                            setTimeout(() => {
-                                overlay.classList.add('hidden');
-                                resolve();
-                            }, 500);
-                        };
-
-                        overlay.addEventListener('click', dismiss);
+                    const dismiss = () => {
+                        overlay.removeEventListener('click', dismiss);
+                        overlay.classList.add('fade-out');
+                        setTimeout(() => {
+                            overlay.classList.add('hidden');
+                        }, 500);
                     };
 
-                    img.onerror = () => {
-                        console.error('Failed to load title image');
-                        resolve();
-                    };
-                });
+                    overlay.addEventListener('click', dismiss);
+                };
+
+                img.onerror = () => {
+                    console.error('Failed to load title image');
+                };
             },
 
             showAdminPanel() {
