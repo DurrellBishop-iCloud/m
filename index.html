@@ -3213,65 +3213,84 @@
         function saveToPhone() {
             hideSaveModal();
 
-            const maskName = generateMaskName();
-
-            // Redraw canvas WITHOUT markers
-            if (currentMaskData) {
-                previewCtx.putImageData(currentMaskData, 0, 0);
-            }
-
-            const imageDataUrl = previewCanvas.toDataURL('image/png');
-            const maskId = 'local-' + Date.now();
-
-            // Build anchors (eyes only)
-            const anchors = {};
-            if (eyePoints.left && eyePoints.right) {
-                anchors.leftEye = { x: eyePoints.left.x / previewCanvas.width, y: eyePoints.left.y / previewCanvas.height };
-                anchors.rightEye = { x: eyePoints.right.x / previewCanvas.width, y: eyePoints.right.y / previewCanvas.height };
-            }
-
-            // Save to localStorage
-            const localMasks = JSON.parse(localStorage.getItem('local_masks') || '[]');
-            localMasks.push({
-                id: maskId,
-                name: maskName,
-                image: imageDataUrl,
-                anchors: anchors
-            });
-            localStorage.setItem('local_masks', JSON.stringify(localMasks));
-
-            // Clear gallery cache so it reloads
-            galleryManifest = null;
-
-            // Reset edit state
-            isEditingExistingMask = false;
-            editingMask = null;
-            editingMaskGroup = null;
-            document.getElementById('retakeBtn').textContent = 'Retake';
-
-            // Hide edit-specific UI
-            document.getElementById('editControls').classList.add('hidden');
-                document.getElementById('eyeControls').classList.add('hidden');
-            document.getElementById('toleranceRow').classList.add('hidden');
-            eyePointMode = false;
-            placingEye = null;
-            eraseMode = false;
-
-            updateStatus('capture', `"${maskName}" saved to Local-masks!`);
-
-            // Redraw markers so user sees clean state while waiting
-            drawEyePointMarkers();
-
-            // Return to play mode after a brief delay and reload mask
-            setTimeout(async () => {
-                try {
-                    switchView('track');
-                    await reloadCurrentMask();
-                } catch (error) {
-                    console.error('Error after save:', error);
-                    switchView('track');
+            try {
+                // Validate we have what we need
+                if (!previewCanvas || !previewCtx) {
+                    alert('Error: No mask to save');
+                    return;
                 }
-            }, 1000);
+
+                if (!currentMaskData) {
+                    alert('Error: No mask data');
+                    return;
+                }
+
+                if (!eyePoints.left || !eyePoints.right) {
+                    alert('Error: Please place both eye locations first');
+                    return;
+                }
+
+                const maskName = generateMaskName();
+
+                // Redraw canvas WITHOUT markers
+                previewCtx.putImageData(currentMaskData, 0, 0);
+
+                const imageDataUrl = previewCanvas.toDataURL('image/png');
+                const maskId = 'local-' + Date.now();
+
+                // Build anchors
+                const anchors = {
+                    leftEye: { x: eyePoints.left.x / previewCanvas.width, y: eyePoints.left.y / previewCanvas.height },
+                    rightEye: { x: eyePoints.right.x / previewCanvas.width, y: eyePoints.right.y / previewCanvas.height }
+                };
+
+                // Save to localStorage
+                const localMasks = JSON.parse(localStorage.getItem('local_masks') || '[]');
+                localMasks.push({
+                    id: maskId,
+                    name: maskName,
+                    image: imageDataUrl,
+                    anchors: anchors
+                });
+                localStorage.setItem('local_masks', JSON.stringify(localMasks));
+
+                // Clear gallery cache so it reloads
+                galleryManifest = null;
+
+                // Reset edit state
+                isEditingExistingMask = false;
+                editingMask = null;
+                editingMaskGroup = null;
+                document.getElementById('retakeBtn').textContent = 'Retake';
+
+                // Hide edit-specific UI
+                document.getElementById('editControls').classList.add('hidden');
+                document.getElementById('eyeControls').classList.add('hidden');
+                document.getElementById('toleranceRow').classList.add('hidden');
+                eyePointMode = false;
+                placingEye = null;
+                eraseMode = false;
+
+                updateStatus('capture', `"${maskName}" saved to Local-masks!`);
+
+                // Redraw markers so user sees clean state while waiting
+                drawEyePointMarkers();
+
+                // Return to play mode after a brief delay and reload mask
+                setTimeout(async () => {
+                    try {
+                        switchView('track');
+                        await reloadCurrentMask();
+                    } catch (error) {
+                        console.error('Error after save:', error);
+                        switchView('track');
+                    }
+                }, 1000);
+
+            } catch (error) {
+                console.error('Save failed:', error);
+                alert('Save failed: ' + error.message);
+            }
         }
 
         // Show create group prompt
