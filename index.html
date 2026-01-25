@@ -2535,18 +2535,39 @@
             }
         }
 
+        // Downsample image to max 1024px on longest side
+        const MAX_IMAGE_SIZE = 1024;
+        function downsampleToCanvas(source, srcWidth, srcHeight) {
+            let width = srcWidth;
+            let height = srcHeight;
+
+            // Scale down if needed
+            if (width > MAX_IMAGE_SIZE || height > MAX_IMAGE_SIZE) {
+                if (width > height) {
+                    height = Math.round(height * (MAX_IMAGE_SIZE / width));
+                    width = MAX_IMAGE_SIZE;
+                } else {
+                    width = Math.round(width * (MAX_IMAGE_SIZE / height));
+                    height = MAX_IMAGE_SIZE;
+                }
+            }
+
+            const canvas = document.getElementById('previewCanvas');
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            canvas.width = width;
+            canvas.height = height;
+            ctx.drawImage(source, 0, 0, width, height);
+
+            return { canvas, ctx, width, height };
+        }
+
         function takePhoto() {
             if (!captureVideo) return;
 
-            previewCanvas = document.getElementById('previewCanvas');
-            previewCtx = previewCanvas.getContext('2d', { willReadFrequently: true });
-
-            // Set canvas to video dimensions
-            previewCanvas.width = captureVideo.videoWidth;
-            previewCanvas.height = captureVideo.videoHeight;
-
-            // Draw video frame to canvas
-            previewCtx.drawImage(captureVideo, 0, 0);
+            // Downsample to max 1024px
+            const result = downsampleToCanvas(captureVideo, captureVideo.videoWidth, captureVideo.videoHeight);
+            previewCanvas = result.canvas;
+            previewCtx = result.ctx;
 
             // Store original image data
             originalImageData = previewCtx.getImageData(0, 0, previewCanvas.width, previewCanvas.height);
@@ -2577,15 +2598,10 @@
 
             const img = new Image();
             img.onload = () => {
-                previewCanvas = document.getElementById('previewCanvas');
-                previewCtx = previewCanvas.getContext('2d', { willReadFrequently: true });
-
-                // Set canvas to image dimensions
-                previewCanvas.width = img.width;
-                previewCanvas.height = img.height;
-
-                // Draw image to canvas
-                previewCtx.drawImage(img, 0, 0);
+                // Downsample to max 1024px
+                const result = downsampleToCanvas(img, img.width, img.height);
+                previewCanvas = result.canvas;
+                previewCtx = result.ctx;
 
                 // Store original image data
                 originalImageData = previewCtx.getImageData(0, 0, previewCanvas.width, previewCanvas.height);
