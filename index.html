@@ -3518,21 +3518,10 @@
                     await reloadCurrentMask();
                 }, 1000);
             } else {
-                // Update remote mask - need to delete old and create new with same name
+                // Update remote mask - upload new first, then delete old (safer)
                 updateStatus('capture', 'Updating mask...');
                 try {
-                    // For remote masks, we update by saving with the same name
-                    // First delete the old one
-                    await fetch(`${WORKER_URL}/mask`, {
-                        method: 'DELETE',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            group: editingMaskGroup,
-                            maskId: editingMask.id
-                        })
-                    });
-
-                    // Then save the updated version
+                    // Upload the new version first
                     const response = await fetch(`${WORKER_URL}/upload`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -3544,7 +3533,20 @@
                         })
                     });
 
-                    if (!response.ok) throw new Error('Upload failed');
+                    if (!response.ok) {
+                        const errData = await response.json().catch(() => ({}));
+                        throw new Error(errData.error || 'Upload failed');
+                    }
+
+                    // Upload succeeded - now safe to delete the old one
+                    await fetch(`${WORKER_URL}/mask`, {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            group: editingMaskGroup,
+                            maskId: editingMask.id
+                        })
+                    });
 
                     saveGroupToStorage(editingMaskGroup);
                     galleryManifest = null;
