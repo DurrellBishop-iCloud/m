@@ -3549,8 +3549,8 @@
                 }
             }
 
-            // Show current friend group prominently if user has access
-            if (currentGroup !== 'public' && currentGroup !== 'local' && friendTokens[currentGroup]) {
+            // Show current group prominently if user has access (admin or friend token)
+            if (currentGroup !== 'public' && currentGroup !== 'local' && (isAdmin || friendTokens[currentGroup])) {
                 const groupDisplayName = currentGroupName || currentGroup;
                 html += `<button class="modal-btn primary" data-save-group="${currentGroup}">${groupDisplayName}</button>`;
             }
