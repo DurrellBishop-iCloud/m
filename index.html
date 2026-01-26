@@ -3517,7 +3517,7 @@
         }
 
         // Show save group picker
-        function showSaveGroupPicker() {
+        async function showSaveGroupPicker() {
             if (!eyePoints.left || !eyePoints.right) {
                 updateStatus('capture', 'Please add eye points before saving');
                 return;
@@ -3558,16 +3558,25 @@
                 html += `<button class="modal-btn primary" data-save-group="${currentGroup}">${groupDisplayName}</button>`;
             }
 
-            // For admin: show all saved groups (except current which is already shown)
-            // For regular users: only show other friend groups they have tokens for
+            // For admin: fetch all groups from server
+            // For regular users: only show friend groups they have tokens for
             const storedNames = JSON.parse(localStorage.getItem('group_names') || '{}');
             if (isAdmin) {
-                const groups = getSavedGroups().filter(g => g !== 'public' && g !== 'local' && g !== currentGroup);
-                if (groups.length > 0) {
-                    html += groups.map(g => {
-                        const name = (storedNames[g] || g) + '-masks';
-                        return `<button class="modal-btn" data-save-group="${g}">${name}</button>`;
-                    }).join('');
+                try {
+                    const response = await fetch(withAdmin(`${WORKER_URL}/groups`));
+                    const data = await response.json();
+                    if (data.groups && Array.isArray(data.groups)) {
+                        const groups = data.groups.filter(g => g.id !== currentGroup);
+                        if (groups.length > 0) {
+                            html += groups.map(g => {
+                                const name = (g.name || g.id) + '-masks';
+                                const badge = g.type === 'friend' ? ' (friend)' : '';
+                                return `<button class="modal-btn" data-save-group="${g.id}">${name}${badge}</button>`;
+                            }).join('');
+                        }
+                    }
+                } catch (e) {
+                    console.error('Failed to fetch groups:', e);
                 }
             } else if (friendGroupIds.length > 0) {
                 // Show other friend groups user can upload to (not current)
