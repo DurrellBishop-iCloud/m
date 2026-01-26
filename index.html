@@ -1148,9 +1148,8 @@
         // Worker config for group-based mask storage
         const WORKER_URL = 'https://mask-worker.dbgh.workers.dev';
 
-        // Get group from URL param, or use last group, or default to local
+        // Get URL parameters
         const urlParams = new URLSearchParams(window.location.search);
-        const currentGroup = urlParams.get('group') || localStorage.getItem('mask_last_group') || 'local';
 
         // Admin mode - use ?admin=durrell310863 to unlock admin features
         const adminCode = urlParams.get('admin');
@@ -1159,36 +1158,82 @@
             localStorage.setItem('mask_admin', 'true');
         }
 
+        // Handle friend token - ?friend=xxx
+        const friendToken = urlParams.get('friend');
+        let currentGroupToken = null;
+        if (friendToken) {
+            // Store friend token for this group
+            const friendTokens = JSON.parse(localStorage.getItem('friend_tokens') || '{}');
+            friendTokens[friendToken] = true;
+            localStorage.setItem('friend_tokens', JSON.stringify(friendTokens));
+            currentGroupToken = friendToken;
+        }
+
+        // Get group from URL param, or use last group, or default to local
+        // ?friend=xxx means group is the friend token
+        // ?group=xxx means regular group (public or legacy)
+        const currentGroup = friendToken || urlParams.get('group') || localStorage.getItem('mask_last_group') || 'local';
+
+        // Check if current group has a friend token stored
+        if (!currentGroupToken && currentGroup !== 'local') {
+            const friendTokens = JSON.parse(localStorage.getItem('friend_tokens') || '{}');
+            if (friendTokens[currentGroup]) {
+                currentGroupToken = currentGroup;
+            }
+        }
+
         // Check if this is a newly created group (show share modal later)
         const isNewGroup = urlParams.get('new') === '1';
 
-        // Save current group as last used
-        localStorage.setItem('mask_last_group', currentGroup);
+        // Save current group as last used (not for friend links on first visit)
+        if (!friendToken) {
+            localStorage.setItem('mask_last_group', currentGroup);
+        }
 
-        // Save shared groups to picker (not public or local)
-        if (currentGroup !== 'public' && currentGroup !== 'local') {
-            const savedGroups = JSON.parse(localStorage.getItem('mask_groups') || '[]');
-            if (!savedGroups.includes(currentGroup)) {
-                savedGroups.push(currentGroup);
-                localStorage.setItem('mask_groups', JSON.stringify(savedGroups));
-            }
+        // Current group display name (will be updated when we fetch group info)
+        let currentGroupName = currentGroup;
+        let currentGroupType = 'unknown'; // 'public', 'friend', or 'local'
+
+        if (currentGroup === 'local') {
+            currentGroupName = 'Local-masks';
+            currentGroupType = 'local';
+        } else if (currentGroup === 'public') {
+            currentGroupName = 'Public-masks';
+            currentGroupType = 'public';
         }
 
         // Update header bar with group name
         function updateHeader() {
             const groupNameEl = document.getElementById('groupNameHeader');
-            let name;
-            if (currentGroup === 'public') {
-                name = 'Public-masks';
-            } else if (currentGroup === 'local') {
-                name = 'Local-masks';
-            } else {
-                name = currentGroup;
+            let displayName = currentGroupName;
+            if (currentGroupType === 'local') {
+                displayName = 'Local-masks';
+            } else if (currentGroupType === 'public' && currentGroup === 'public') {
+                displayName = 'Public-masks';
             }
             // Show admin indicator
-            groupNameEl.textContent = isAdmin ? '* ' + name : name;
+            groupNameEl.textContent = isAdmin ? '* ' + displayName : displayName;
         }
         updateHeader();
+
+        // Helper: Add admin param to URL if admin
+        function withAdmin(url) {
+            if (isAdmin) {
+                const sep = url.includes('?') ? '&' : '?';
+                return url + sep + 'admin=' + adminCode;
+            }
+            return url;
+        }
+
+        // Helper: Add token to URL if we have one for this group
+        function withToken(url, groupId) {
+            const friendTokens = JSON.parse(localStorage.getItem('friend_tokens') || '{}');
+            if (friendTokens[groupId]) {
+                const sep = url.includes('?') ? '&' : '?';
+                return url + sep + 'token=' + groupId;
+            }
+            return url;
+        }
 
         // Make Mask button - goes directly to capture for current group
         document.getElementById('makeMaskBtn').addEventListener('click', () => {
@@ -2002,19 +2047,33 @@
                 // Local masks are stored in localStorage
                 if (currentGroup === 'local') {
                     const localMasks = JSON.parse(localStorage.getItem('local_masks') || '[]');
-                    galleryManifest = { masks: localMasks, group: 'local' };
+                    galleryManifest = { masks: localMasks, group: 'local', name: 'Local-masks' };
+                    currentGroupName = 'Local-masks';
+                    currentGroupType = 'local';
                     console.log('Loaded ' + localMasks.length + ' local masks');
                 } else {
-                    const response = await fetch(`${WORKER_URL}/masks?group=${currentGroup}`, {
-                        cache: 'no-store'
-                    });
+                    let url = `${WORKER_URL}/masks?group=${currentGroup}`;
+                    url = withAdmin(url);
+                    url = withToken(url, currentGroup);
+
+                    const response = await fetch(url, { cache: 'no-store' });
                     galleryManifest = await response.json();
-                    console.log('Loaded ' + galleryManifest.masks.length + ' masks for group: ' + currentGroup);
+
+                    // Update group info from response
+                    if (galleryManifest.name) {
+                        currentGroupName = galleryManifest.name;
+                    }
+                    if (galleryManifest.type) {
+                        currentGroupType = galleryManifest.type;
+                    }
+                    updateHeader();
+
+                    console.log('Loaded ' + galleryManifest.masks.length + ' masks for group: ' + currentGroup + ' (' + currentGroupName + ')');
                 }
 
-                // Update group name display
+                // Update group name display in gallery
                 const groupNameEl = document.getElementById('groupName');
-                if (groupNameEl) groupNameEl.textContent = currentGroup;
+                if (groupNameEl) groupNameEl.textContent = currentGroupName;
             } catch (error) {
                 console.error('Failed to load gallery manifest:', error);
                 galleryManifest = { masks: [] };
@@ -3435,27 +3494,44 @@
             const modal = document.getElementById('saveModal');
             const groupList = document.getElementById('saveGroupList');
             const publicBtn = document.getElementById('saveToPublicBtn');
+            const newGroupBtn = document.getElementById('saveToNewGroupBtn');
 
             // Show Public option only for admins
             publicBtn.style.display = isAdmin ? 'flex' : 'none';
 
-            // Build saved groups list (exclude public and local)
-            const groups = getSavedGroups().filter(g => g !== 'public' && g !== 'local');
+            // Show New Group only for admins (they create groups, then share links)
+            newGroupBtn.style.display = isAdmin ? 'flex' : 'none';
+
+            // Get friend tokens - these are groups the user can upload to
+            const friendTokens = JSON.parse(localStorage.getItem('friend_tokens') || '{}');
+            const friendGroupIds = Object.keys(friendTokens);
 
             let html = '';
 
             // Add Replace option if editing existing mask
             if (isEditingExistingMask && editingMask) {
+                // Can replace if: local, or admin for public, or has token for friend group
                 const canReplace = editingMaskGroup === 'local' ||
                                    (editingMaskGroup === 'public' && isAdmin) ||
-                                   (editingMaskGroup !== 'public' && editingMaskGroup !== 'local');
+                                   (isAdmin) ||
+                                   (friendTokens[editingMaskGroup]);
                 if (canReplace) {
                     html += `<button class="modal-btn primary" id="replaceOriginalBtn">Replace Original</button>`;
                 }
             }
 
-            if (groups.length > 0) {
-                html += groups.map(g => `
+            // For admin: show all saved groups
+            // For regular users: only show friend groups they have tokens for
+            if (isAdmin) {
+                const groups = getSavedGroups().filter(g => g !== 'public' && g !== 'local');
+                if (groups.length > 0) {
+                    html += groups.map(g => `
+                        <button class="modal-btn" data-save-group="${g}">${g}</button>
+                    `).join('');
+                }
+            } else if (friendGroupIds.length > 0) {
+                // Show friend groups user can upload to
+                html += friendGroupIds.map(g => `
                     <button class="modal-btn" data-save-group="${g}">${g}</button>
                 `).join('');
             }
@@ -3526,8 +3602,13 @@
                 // Update remote mask - upload new first, then delete old (safer)
                 updateStatus('capture', 'Updating mask...');
                 try {
+                    // Build URL with auth
+                    let uploadUrl = `${WORKER_URL}/upload`;
+                    uploadUrl = withAdmin(uploadUrl);
+                    uploadUrl = withToken(uploadUrl, editingMaskGroup);
+
                     // Upload the new version first
-                    const response = await fetch(`${WORKER_URL}/upload`, {
+                    const response = await fetch(uploadUrl, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -3544,7 +3625,10 @@
                     }
 
                     // Upload succeeded - now safe to delete the old one
-                    await fetch(`${WORKER_URL}/mask`, {
+                    let deleteUrl = `${WORKER_URL}/mask`;
+                    deleteUrl = withAdmin(deleteUrl);
+
+                    await fetch(deleteUrl, {
                         method: 'DELETE',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -3686,7 +3770,12 @@
 
                 updateStatus('capture', `Uploading ${sizeKB}KB to ${groupName}...`);
 
-                const response = await fetch(`${WORKER_URL}/upload`, {
+                // Build URL with auth
+                let uploadUrl = `${WORKER_URL}/upload`;
+                uploadUrl = withAdmin(uploadUrl);
+                uploadUrl = withToken(uploadUrl, groupName);
+
+                const response = await fetch(uploadUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
