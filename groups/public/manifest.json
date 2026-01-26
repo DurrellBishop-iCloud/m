@@ -2,21 +2,6 @@
   "version": 1,
   "masks": [
     {
-      "id": "mask-1769453659512",
-      "name": "iPhone-Jan26-1854",
-      "image": "groups/public/images/mask-1769453659512.png",
-      "anchors": {
-        "leftEye": {
-          "x": 0.6393034825870647,
-          "y": 0.5382541140116897
-        },
-        "rightEye": {
-          "x": 0.37479270315091207,
-          "y": 0.5382541140116897
-        }
-      }
-    },
-    {
       "id": "mask-1769453708770",
       "name": "iPhone-Jan26-1854",
       "image": "groups/public/images/mask-1769453708770.png",
