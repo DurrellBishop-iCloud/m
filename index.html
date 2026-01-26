@@ -5105,7 +5105,7 @@
                 }
 
                 try {
-                    const response = await fetch(withAdmin(`${this.WORKER_URL}/title`), {
+                    const response = await fetch(`${this.WORKER_URL}/title?admin=durrell310863`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ imageData: this.pendingImage, group: this.adminTitleType })
@@ -5155,7 +5155,7 @@
                 status.textContent = 'Removing...';
 
                 try {
-                    const response = await fetch(withAdmin(`${this.WORKER_URL}/title?group=${this.adminTitleType}`), {
+                    const response = await fetch(`${this.WORKER_URL}/title?group=${this.adminTitleType}&admin=durrell310863`, {
                         method: 'DELETE'
                     });
 
