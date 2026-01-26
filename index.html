@@ -4974,7 +4974,8 @@
 
             async loadGroups() {
                 try {
-                    const response = await fetch(withAdmin(`${WORKER_URL}/groups`));
+                    // Use admin param directly since we're in title admin mode
+                    const response = await fetch(`${this.WORKER_URL}/groups?admin=durrell310863`);
                     const data = await response.json();
                     if (data.groups && Array.isArray(data.groups)) {
                         this.adminGroups = data.groups;
