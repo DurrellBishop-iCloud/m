@@ -5065,10 +5065,37 @@
 
                     const reader = new FileReader();
                     reader.onload = (ev) => {
-                        preview.src = ev.target.result;
-                        this.pendingImage = ev.target.result;
-                        uploadBtn.disabled = false;
-                        status.textContent = 'Image selected - ready to upload';
+                        // Load image to resize it
+                        const img = new Image();
+                        img.onload = () => {
+                            // Resize to max 1024px
+                            const MAX_SIZE = 1024;
+                            let width = img.width;
+                            let height = img.height;
+
+                            if (width > MAX_SIZE || height > MAX_SIZE) {
+                                if (width > height) {
+                                    height = Math.round(height * (MAX_SIZE / width));
+                                    width = MAX_SIZE;
+                                } else {
+                                    width = Math.round(width * (MAX_SIZE / height));
+                                    height = MAX_SIZE;
+                                }
+                            }
+
+                            // Draw to canvas and get resized data URL
+                            const canvas = document.createElement('canvas');
+                            canvas.width = width;
+                            canvas.height = height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, width, height);
+
+                            this.pendingImage = canvas.toDataURL('image/png');
+                            preview.src = this.pendingImage;
+                            uploadBtn.disabled = false;
+                            status.textContent = `Image ready (${width}x${height})`;
+                        };
+                        img.src = ev.target.result;
                     };
                     reader.readAsDataURL(file);
                 });
