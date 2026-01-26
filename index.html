@@ -927,6 +927,8 @@
             <div class="group-list" id="groupPickerList"></div>
             <div class="modal-divider" id="pickerShareSection" style="display:none;"></div>
             <button class="modal-btn" id="pickerShareBtn" style="display:none;">Share This Group</button>
+            <div class="modal-divider" id="pickerAdminSection" style="display:none;"></div>
+            <button class="modal-btn" id="pickerAdminBtn" style="display:none;background:#9C27B0;">Admin Panel</button>
             <button class="modal-cancel" id="groupPickerCancelBtn">Cancel</button>
         </div>
     </div>
@@ -4053,6 +4055,21 @@
             } else {
                 shareSection.style.display = 'none';
                 shareBtn.style.display = 'none';
+            }
+
+            // Show admin panel button for admins
+            const adminSection = document.getElementById('pickerAdminSection');
+            const adminBtn = document.getElementById('pickerAdminBtn');
+            if (isAdmin) {
+                adminSection.style.display = '';
+                adminBtn.style.display = '';
+                adminBtn.onclick = () => {
+                    hideGroupPicker();
+                    showAdminPanel();
+                };
+            } else {
+                adminSection.style.display = 'none';
+                adminBtn.style.display = 'none';
             }
 
             modal.classList.remove('hidden');
