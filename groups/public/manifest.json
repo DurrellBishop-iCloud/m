@@ -152,21 +152,6 @@
       }
     },
     {
-      "id": "mask-1769467052083",
-      "name": "iPhone-Jan26-2237",
-      "image": "groups/public/images/mask-1769467052083.png",
-      "anchors": {
-        "leftEye": {
-          "x": 0.57,
-          "y": 0.4429991093610838
-        },
-        "rightEye": {
-          "x": 0.43781094527363185,
-          "y": 0.42723880597014924
-        }
-      }
-    },
-    {
       "id": "mask-1769467142051",
       "name": "iPhone-Jan26-2239",
       "image": "groups/public/images/mask-1769467142051.png",
