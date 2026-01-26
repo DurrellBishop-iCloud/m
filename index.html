@@ -928,7 +928,7 @@
             <div class="modal-divider" id="pickerShareSection" style="display:none;"></div>
             <button class="modal-btn" id="pickerShareBtn" style="display:none;">Share This Group</button>
             <div class="modal-divider" id="pickerAdminSection" style="display:none;"></div>
-            <button class="modal-btn" id="pickerAdminBtn" style="display:none;background:#9C27B0;">Admin Panel</button>
+            <button class="modal-btn" id="pickerAdminBtn" style="display:none;">Admin Panel</button>
             <button class="modal-cancel" id="groupPickerCancelBtn">Cancel</button>
         </div>
     </div>
@@ -953,7 +953,7 @@
             <button class="modal-btn" id="importLocalBtn">Import Masks</button>
 
             <div class="modal-divider" id="adminSection" style="display:none;"></div>
-            <button class="modal-btn" id="adminPanelBtn" style="display:none;background:#9C27B0;">Admin Panel</button>
+            <button class="modal-btn" id="adminPanelBtn" style="display:none;">Admin Panel</button>
 
             <button class="modal-cancel" id="groupCloseBtn">Close</button>
         </div>
@@ -962,15 +962,15 @@
     <!-- Admin Panel Modal -->
     <div class="modal-overlay hidden" id="adminPanelModal">
         <div class="modal" style="max-height:80vh;overflow-y:auto;">
-            <h3 style="margin:0 0 16px 0;text-align:center;color:#9C27B0;">Admin Panel</h3>
+            <h3>Admin Panel</h3>
 
             <div style="margin-bottom:16px;">
-                <button class="modal-btn primary" id="createPublicGroupBtn" style="background:#4CAF50;">Create Public Group</button>
-                <button class="modal-btn" id="createFriendGroupBtn" style="background:#2196F3;">Create Friend Group</button>
+                <button class="modal-btn" id="createPublicGroupBtn">Create Public Group</button>
+                <button class="modal-btn" id="createFriendGroupBtn">Create Friend Group</button>
             </div>
 
             <div class="modal-divider"></div>
-            <h4 style="margin:12px 0 8px 0;color:#888;font-size:12px;text-transform:uppercase;">All Groups</h4>
+            <div style="margin:12px 0 8px 0;font-size:12px;">All Groups</div>
             <div id="adminGroupsList" style="max-height:300px;overflow-y:auto;"></div>
 
             <div class="modal-divider"></div>
@@ -4549,7 +4549,7 @@
 
                 let html = '';
                 if (publicGroups.length > 0) {
-                    html += '<div style="font-size:11px;color:#4CAF50;margin:8px 0 4px 0;text-transform:uppercase;">Public Groups</div>';
+                    html += '<div style="font-size:11px;margin:8px 0 4px 0;">Public Groups</div>';
                     publicGroups.forEach(g => {
                         html += `
                             <div style="display:flex;align-items:center;justify-content:space-between;padding:8px;background:#222;border-radius:4px;margin-bottom:4px;">
@@ -4564,7 +4564,7 @@
                 }
 
                 if (friendGroups.length > 0) {
-                    html += '<div style="font-size:11px;color:#2196F3;margin:12px 0 4px 0;text-transform:uppercase;">Friend Groups</div>';
+                    html += '<div style="font-size:11px;margin:12px 0 4px 0;">Friend Groups</div>';
                     friendGroups.forEach(g => {
                         const isRevoked = g.revoked;
                         html += `
@@ -4575,8 +4575,8 @@
                                 </div>
                                 <div style="display:flex;gap:4px;">
                                     <button class="modal-btn admin-goto-btn" data-group="${g.id}" style="width:auto;padding:6px 12px;margin:0;">View</button>
-                                    <button class="modal-btn admin-copy-btn" data-group="${g.id}" style="width:auto;padding:6px 12px;margin:0;background:#2196F3;" ${isRevoked ? 'disabled' : ''}>Copy Link</button>
-                                    <button class="modal-btn admin-revoke-btn" data-group="${g.id}" style="width:auto;padding:6px 12px;margin:0;background:#f44336;" ${isRevoked ? 'disabled' : ''}>Revoke</button>
+                                    <button class="modal-btn admin-copy-btn" data-group="${g.id}" style="width:auto;padding:6px 12px;margin:0;">Copy Link</button>
+                                    <button class="modal-btn admin-revoke-btn" data-group="${g.id}" style="width:auto;padding:6px 12px;margin:0;">Revoke</button>
                                 </div>
                             </div>
                         `;
