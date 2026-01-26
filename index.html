@@ -950,9 +950,32 @@
             <input type="file" id="importLocalInput" accept=".json,.maskpack" style="display:none;">
             <button class="modal-btn" id="importLocalBtn">Import Masks</button>
 
+            <div class="modal-divider" id="adminSection" style="display:none;"></div>
+            <button class="modal-btn" id="adminPanelBtn" style="display:none;background:#9C27B0;">Admin Panel</button>
+
             <button class="modal-cancel" id="groupCloseBtn">Close</button>
         </div>
     </div>
+
+    <!-- Admin Panel Modal -->
+    <div class="modal-overlay hidden" id="adminPanelModal">
+        <div class="modal" style="max-height:80vh;overflow-y:auto;">
+            <h3 style="margin:0 0 16px 0;text-align:center;color:#9C27B0;">Admin Panel</h3>
+
+            <div style="margin-bottom:16px;">
+                <button class="modal-btn primary" id="createPublicGroupBtn" style="background:#4CAF50;">Create Public Group</button>
+                <button class="modal-btn" id="createFriendGroupBtn" style="background:#2196F3;">Create Friend Group</button>
+            </div>
+
+            <div class="modal-divider"></div>
+            <h4 style="margin:12px 0 8px 0;color:#888;font-size:12px;text-transform:uppercase;">All Groups</h4>
+            <div id="adminGroupsList" style="max-height:300px;overflow-y:auto;"></div>
+
+            <div class="modal-divider"></div>
+            <button class="modal-cancel" id="adminPanelCloseBtn">Close</button>
+        </div>
+    </div>
+
     <div id="debugInfo" style="display:none;position:fixed;bottom:10px;left:10px;background:rgba(0,0,0,0.8);color:#0f0;font-family:monospace;font-size:12px;padding:10px;z-index:9999;max-width:90%;"></div>
     <div class="container">
         <!-- Header with group name and buttons -->
@@ -3955,33 +3978,46 @@
             const list = document.getElementById('groupPickerList');
 
             // Get local saved groups
-            let groups = getSavedGroups().filter(g => g !== 'public' && g !== 'local');
+            let localGroups = getSavedGroups().filter(g => g !== 'public' && g !== 'local');
 
-            // If admin, also fetch all server groups
-            if (isAdmin) {
-                try {
-                    const response = await fetch(`${WORKER_URL}/groups`);
-                    const data = await response.json();
-                    if (data.groups) {
-                        // Merge server groups with local, avoiding duplicates
-                        data.groups.forEach(g => {
-                            if (!groups.includes(g) && g !== 'public' && g !== 'local') {
-                                groups.push(g);
-                            }
-                        });
-                    }
-                } catch (e) {
-                    console.error('Failed to fetch server groups:', e);
+            // Store group info (id -> name mapping)
+            let groupInfo = {};
+
+            // Try to fetch group registry for friendly names
+            try {
+                const url = isAdmin ? withAdmin(`${WORKER_URL}/groups`) : `${WORKER_URL}/groups/public`;
+                const response = await fetch(url);
+                const data = await response.json();
+                if (data.groups && Array.isArray(data.groups)) {
+                    // data.groups is an array: [{ id, name, type, ... }]
+                    data.groups.forEach(g => {
+                        groupInfo[g.id] = g.name || g.id;
+                        // Add to list if not already there
+                        if (!localGroups.includes(g.id)) {
+                            localGroups.push(g.id);
+                        }
+                    });
                 }
+            } catch (e) {
+                console.error('Failed to fetch group registry:', e);
             }
 
-            // Sort alphabetically
-            groups.sort();
+            // Also check friend tokens for accessible groups
+            const friendTokens = JSON.parse(localStorage.getItem('friend_tokens') || '{}');
+            Object.keys(friendTokens).forEach(token => {
+                if (!localGroups.includes(token)) {
+                    localGroups.push(token);
+                }
+            });
+
+            // Sort alphabetically by display name
+            localGroups.sort((a, b) => {
+                const nameA = groupInfo[a] || a;
+                const nameB = groupInfo[b] || b;
+                return nameA.localeCompare(nameB);
+            });
 
             let html = `
-                <button class="modal-btn" id="newGroupPickerBtn">
-                    New Group-masks
-                </button>
                 <button class="modal-btn ${currentGroup === 'public' ? 'selected' : ''}" data-group="public">
                     ${isAdmin ? '* ' : ''}Public-masks
                 </button>
@@ -3990,25 +4026,19 @@
                 </button>
             `;
 
-            groups.forEach(g => {
+            localGroups.forEach(g => {
+                const displayName = groupInfo[g] || g;
+                const isFriend = g.startsWith('f_');
+                const isPublicGroup = g.startsWith('g_');
+                const badge = isAdmin ? (isFriend ? ' (friend)' : (isPublicGroup ? ' (public)' : '')) : '';
                 html += `
                     <button class="modal-btn ${currentGroup === g ? 'selected' : ''}" data-group="${g}">
-                        ${g}
+                        ${displayName}${badge}
                     </button>
                 `;
             });
 
             list.innerHTML = html;
-
-            // New group button
-            document.getElementById('newGroupPickerBtn').addEventListener('click', () => {
-                hideGroupPicker();
-                showCreateGroupModal((groupName) => {
-                    saveGroupToStorage(groupName);
-                    // Navigate to new group with flag to show share modal
-                    window.location.href = `?group=${groupName}&new=1`;
-                });
-            });
 
             list.querySelectorAll('[data-group]').forEach(btn => {
                 btn.addEventListener('click', () => {
@@ -4301,10 +4331,16 @@
             const savedGroupsList = document.getElementById('savedGroupsList');
             const publicBtn = document.getElementById('publicGroupBtn');
             const localBtn = document.getElementById('localGroupBtn');
+            const adminSection = document.getElementById('adminSection');
+            const adminPanelBtn = document.getElementById('adminPanelBtn');
 
             // Highlight current selection
             publicBtn.classList.toggle('selected', currentGroup === 'public');
             localBtn.classList.toggle('selected', currentGroup === 'local');
+
+            // Show admin section only for admins
+            adminSection.style.display = isAdmin ? 'block' : 'none';
+            adminPanelBtn.style.display = isAdmin ? 'flex' : 'none';
 
             // Show share button only for shared groups (not public, not local)
             if (currentGroup !== 'public' && currentGroup !== 'local') {
@@ -4473,6 +4509,172 @@
             showShareModal();
         });
 
+        // Admin Panel
+        document.getElementById('adminPanelBtn').addEventListener('click', () => {
+            hideGroupMenu();
+            showAdminPanel();
+        });
+
+        async function showAdminPanel() {
+            const modal = document.getElementById('adminPanelModal');
+            const groupsList = document.getElementById('adminGroupsList');
+            groupsList.innerHTML = '<div style="text-align:center;color:#888;padding:20px;">Loading groups...</div>';
+            modal.classList.remove('hidden');
+
+            // Fetch all groups from server
+            try {
+                const response = await fetch(withAdmin(`${WORKER_URL}/groups`));
+                if (!response.ok) throw new Error('Failed to fetch groups');
+                const data = await response.json();
+
+                if (!data.groups || !Array.isArray(data.groups) || data.groups.length === 0) {
+                    groupsList.innerHTML = '<div style="text-align:center;color:#888;padding:20px;">No groups yet</div>';
+                    return;
+                }
+
+                // Sort: public first, then friend
+                const publicGroups = data.groups.filter(g => g.type === 'public');
+                const friendGroups = data.groups.filter(g => g.type === 'friend');
+
+                let html = '';
+                if (publicGroups.length > 0) {
+                    html += '<div style="font-size:11px;color:#4CAF50;margin:8px 0 4px 0;text-transform:uppercase;">Public Groups</div>';
+                    publicGroups.forEach(g => {
+                        html += `
+                            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px;background:#222;border-radius:4px;margin-bottom:4px;">
+                                <div style="flex:1;">
+                                    <div style="font-size:14px;">${g.name || g.id}</div>
+                                    <div style="font-size:10px;color:#666;">${g.id}</div>
+                                </div>
+                                <button class="modal-btn admin-goto-btn" data-group="${g.id}" style="width:auto;padding:6px 12px;margin:0;">View</button>
+                            </div>
+                        `;
+                    });
+                }
+
+                if (friendGroups.length > 0) {
+                    html += '<div style="font-size:11px;color:#2196F3;margin:12px 0 4px 0;text-transform:uppercase;">Friend Groups</div>';
+                    friendGroups.forEach(g => {
+                        const isRevoked = g.revoked;
+                        html += `
+                            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px;background:#222;border-radius:4px;margin-bottom:4px;${isRevoked ? 'opacity:0.5;' : ''}">
+                                <div style="flex:1;">
+                                    <div style="font-size:14px;">${g.name || g.id} ${isRevoked ? '(revoked)' : ''}</div>
+                                    <div style="font-size:10px;color:#666;">${g.id}</div>
+                                </div>
+                                <div style="display:flex;gap:4px;">
+                                    <button class="modal-btn admin-goto-btn" data-group="${g.id}" style="width:auto;padding:6px 12px;margin:0;">View</button>
+                                    <button class="modal-btn admin-copy-btn" data-group="${g.id}" style="width:auto;padding:6px 12px;margin:0;background:#2196F3;" ${isRevoked ? 'disabled' : ''}>Copy Link</button>
+                                    <button class="modal-btn admin-revoke-btn" data-group="${g.id}" style="width:auto;padding:6px 12px;margin:0;background:#f44336;" ${isRevoked ? 'disabled' : ''}>Revoke</button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+
+                groupsList.innerHTML = html;
+
+                // Add event handlers
+                groupsList.querySelectorAll('.admin-goto-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const groupId = btn.dataset.group;
+                        modal.classList.add('hidden');
+                        window.location.href = `?group=${groupId}`;
+                    });
+                });
+
+                groupsList.querySelectorAll('.admin-copy-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const groupId = btn.dataset.group;
+                        const url = `${window.location.origin}${window.location.pathname}?friend=${groupId}`;
+                        navigator.clipboard.writeText(url).then(() => {
+                            alert('Link copied: ' + url);
+                        }).catch(() => {
+                            prompt('Copy this link:', url);
+                        });
+                    });
+                });
+
+                groupsList.querySelectorAll('.admin-revoke-btn').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        const groupId = btn.dataset.group;
+                        if (!confirm(`Revoke access to ${groupId}? Existing links will stop working.`)) return;
+
+                        try {
+                            const response = await fetch(withAdmin(`${WORKER_URL}/group/revoke`), {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ groupId })
+                            });
+
+                            if (!response.ok) throw new Error('Failed to revoke');
+                            alert('Group revoked');
+                            showAdminPanel(); // Refresh
+                        } catch (err) {
+                            alert('Error: ' + err.message);
+                        }
+                    });
+                });
+
+            } catch (err) {
+                groupsList.innerHTML = `<div style="text-align:center;color:#f44;padding:20px;">Error: ${err.message}</div>`;
+            }
+        }
+
+        document.getElementById('createPublicGroupBtn').addEventListener('click', async () => {
+            const name = prompt('Public group display name (e.g., "Holiday Masks"):');
+            if (!name) return;
+
+            try {
+                const response = await fetch(withAdmin(`${WORKER_URL}/group/create`), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'public', name })
+                });
+
+                if (!response.ok) throw new Error('Failed to create group');
+                const data = await response.json();
+                alert(`Public group created!\nID: ${data.groupId}\nName: ${name}`);
+                showAdminPanel(); // Refresh list
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        });
+
+        document.getElementById('createFriendGroupBtn').addEventListener('click', async () => {
+            const name = prompt('Friend group name (e.g., "Ben\'s Masks"):');
+            if (!name) return;
+
+            try {
+                const response = await fetch(withAdmin(`${WORKER_URL}/group/create`), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'friend', name })
+                });
+
+                if (!response.ok) throw new Error('Failed to create group');
+                const data = await response.json();
+
+                const shareUrl = `${window.location.origin}${window.location.pathname}?friend=${data.groupId}`;
+
+                // Copy to clipboard and show
+                try {
+                    await navigator.clipboard.writeText(shareUrl);
+                    alert(`Friend group created!\n\nShare link (copied to clipboard):\n${shareUrl}`);
+                } catch {
+                    prompt('Friend group created! Copy this link to share:', shareUrl);
+                }
+
+                showAdminPanel(); // Refresh list
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        });
+
+        document.getElementById('adminPanelCloseBtn').addEventListener('click', () => {
+            document.getElementById('adminPanelModal').classList.add('hidden');
+        });
+
         // Debug helper
         function debug(msg) {
             const el = document.getElementById('debugInfo');
@@ -4593,7 +4795,7 @@
             config: null,
             isAdmin: false,
             pendingImage: null,
-            titleType: 'public', // 'public' or 'local'
+            titleGroup: 'public', // group ID for title loading
 
             async init() {
                 const urlParams = new URLSearchParams(window.location.search);
@@ -4605,12 +4807,13 @@
                     return false; // Don't continue to main app
                 }
 
-                // Determine title type based on group
-                this.titleType = (currentGroup === 'public') ? 'public' : 'local';
+                // Determine title group - use actual group ID for per-group titles
+                // Worker falls back to 'public' if group-specific title doesn't exist
+                this.titleGroup = currentGroup;
 
                 // Try to load title config - don't wait for click, just show it
                 try {
-                    this.config = await this.loadConfig(this.titleType);
+                    this.config = await this.loadConfig(this.titleGroup);
                     if (this.config && this.config.configured && this.config.image) {
                         this.showTitleScreen(); // Don't await - app loads behind
                     }
@@ -4621,8 +4824,8 @@
                 return true; // Continue to main app immediately
             },
 
-            async loadConfig(type = 'public') {
-                const response = await fetch(`${this.WORKER_URL}/title?type=${type}`);
+            async loadConfig(groupId = 'public') {
+                const response = await fetch(`${this.WORKER_URL}/title?group=${groupId}`);
                 if (!response.ok) return null;
                 return await response.json();
             },
@@ -4760,13 +4963,21 @@
                 uploadBtn.disabled = true;
                 status.textContent = 'Uploading...';
 
-                const imagePath = this.adminTitleType === 'local' ? 'title/local-title-image.png' : 'title/title-image.png';
+                // Image path depends on group type
+                let imagePath;
+                if (this.adminTitleType === 'local') {
+                    imagePath = 'title/local-title-image.png';
+                } else if (this.adminTitleType === 'public') {
+                    imagePath = 'title/title-image.png';
+                } else {
+                    imagePath = `groups/${this.adminTitleType}/title-image.png`;
+                }
 
                 try {
-                    const response = await fetch(`${this.WORKER_URL}/title`, {
+                    const response = await fetch(withAdmin(`${this.WORKER_URL}/title`), {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ imageData: this.pendingImage, type: this.adminTitleType })
+                        body: JSON.stringify({ imageData: this.pendingImage, group: this.adminTitleType })
                     });
 
                     const result = await response.json();
@@ -4804,7 +5015,7 @@
                 status.textContent = 'Removing...';
 
                 try {
-                    const response = await fetch(`${this.WORKER_URL}/title?type=${this.adminTitleType}`, {
+                    const response = await fetch(withAdmin(`${this.WORKER_URL}/title?group=${this.adminTitleType}`), {
                         method: 'DELETE'
                     });
 
