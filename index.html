@@ -2270,7 +2270,7 @@
                     localStorage.setItem('local_masks', JSON.stringify(filtered));
                 } else {
                     // Delete via worker
-                    const response = await fetch(`${WORKER_URL}/mask`, {
+                    const response = await fetch(withAdmin(`${WORKER_URL}/mask`), {
                         method: 'DELETE',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
