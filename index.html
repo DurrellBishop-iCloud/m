@@ -3545,20 +3545,29 @@
                 }
             }
 
-            // For admin: show all saved groups
-            // For regular users: only show friend groups they have tokens for
+            // Show current friend group prominently if user has access
+            if (currentGroup !== 'public' && currentGroup !== 'local' && friendTokens[currentGroup]) {
+                const groupDisplayName = currentGroupName || currentGroup;
+                html += `<button class="modal-btn primary" data-save-group="${currentGroup}">${groupDisplayName}</button>`;
+            }
+
+            // For admin: show all saved groups (except current which is already shown)
+            // For regular users: only show other friend groups they have tokens for
             if (isAdmin) {
-                const groups = getSavedGroups().filter(g => g !== 'public' && g !== 'local');
+                const groups = getSavedGroups().filter(g => g !== 'public' && g !== 'local' && g !== currentGroup);
                 if (groups.length > 0) {
                     html += groups.map(g => `
                         <button class="modal-btn" data-save-group="${g}">${g}</button>
                     `).join('');
                 }
             } else if (friendGroupIds.length > 0) {
-                // Show friend groups user can upload to
-                html += friendGroupIds.map(g => `
-                    <button class="modal-btn" data-save-group="${g}">${g}</button>
-                `).join('');
+                // Show other friend groups user can upload to (not current)
+                const otherGroups = friendGroupIds.filter(g => g !== currentGroup);
+                if (otherGroups.length > 0) {
+                    html += otherGroups.map(g => `
+                        <button class="modal-btn" data-save-group="${g}">${g}</button>
+                    `).join('');
+                }
             }
 
             groupList.innerHTML = html;
