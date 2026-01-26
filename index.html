@@ -738,7 +738,7 @@
             display: none;
         }
 
-        /* Made for iPhone screen */
+        /* Made for mobile screen (shown on desktop) */
         #desktopBlock {
             position: fixed;
             top: 0;
@@ -841,9 +841,9 @@
     </style>
 </head>
 <body>
-    <!-- Made for iPhone screen (shown on desktop) -->
+    <!-- Made for mobile screen (shown on desktop) -->
     <div id="desktopBlock" class="hidden">
-        <h1>Made for iPhone</h1>
+        <h1>Made for iPhone & iPad</h1>
         <p style="color:#666;font-size:16px;margin-top:20px;">dbgh.uk/m</p>
     </div>
 
@@ -5256,7 +5256,9 @@
         // Initialize directly (DOM is ready since module uses top-level await)
         (async () => {
             // Check if on mobile device - block desktop users
-            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            // Note: iPadOS 13+ reports as "Macintosh", so also check for touch support
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
+                             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
             if (!isMobile) {
                 document.getElementById('desktopBlock').classList.remove('hidden');
                 return; // Stop initialization
