@@ -640,7 +640,7 @@
             text-align: left;
         }
         .group-list {
-            max-height: 200px;
+            max-height: 400px;
             overflow-y: auto;
         }
         .create-group-info {
@@ -980,7 +980,7 @@
 
             <div class="modal-divider"></div>
             <div style="margin:12px 0 8px 0;font-size:12px;">All Groups</div>
-            <div id="adminGroupsList" style="max-height:300px;overflow-y:auto;"></div>
+            <div id="adminGroupsList" style="max-height:450px;overflow-y:auto;"></div>
 
             <div class="modal-divider"></div>
             <button class="modal-cancel" id="adminPanelCloseBtn">Close</button>
@@ -4660,7 +4660,10 @@
                                     <div style="font-size:14px;">${displayName}</div>
                                     <div style="font-size:10px;color:#666;">${g.id}</div>
                                 </div>
-                                <button class="modal-btn admin-goto-btn" data-group="${g.id}" style="width:auto;padding:6px 12px;margin:0;">View</button>
+                                <div style="display:flex;gap:4px;">
+                                    <button class="modal-btn admin-goto-btn" data-group="${g.id}" style="width:auto;padding:6px 12px;margin:0;">View</button>
+                                    <button class="modal-btn admin-delete-btn" data-group="${g.id}" data-name="${displayName}" style="width:auto;padding:6px 12px;margin:0;background:#a33;">Delete</button>
+                                </div>
                             </div>
                         `;
                     });
@@ -4677,10 +4680,11 @@
                                     <div style="font-size:14px;">${displayName} ${isRevoked ? '(revoked)' : ''}</div>
                                     <div style="font-size:10px;color:#666;">${g.id}</div>
                                 </div>
-                                <div style="display:flex;gap:4px;">
+                                <div style="display:flex;gap:4px;flex-wrap:wrap;">
                                     <button class="modal-btn admin-goto-btn" data-group="${g.id}" style="width:auto;padding:6px 12px;margin:0;">View</button>
-                                    <button class="modal-btn admin-copy-btn" data-group="${g.id}" style="width:auto;padding:6px 12px;margin:0;">Copy Link</button>
-                                    <button class="modal-btn admin-revoke-btn" data-group="${g.id}" style="width:auto;padding:6px 12px;margin:0;">Revoke</button>
+                                    <button class="modal-btn admin-copy-btn" data-group="${g.id}" style="width:auto;padding:6px 12px;margin:0;">Copy</button>
+                                    <button class="modal-btn admin-revoke-btn" data-group="${g.id}" style="width:auto;padding:6px 12px;margin:0;">${isRevoked ? 'Unrevoke' : 'Revoke'}</button>
+                                    <button class="modal-btn admin-delete-btn" data-group="${g.id}" data-name="${displayName}" style="width:auto;padding:6px 12px;margin:0;background:#a33;">Delete</button>
                                 </div>
                             </div>
                         `;
@@ -4727,6 +4731,38 @@
                             showAdminPanel(); // Refresh
                         } catch (err) {
                             alert('Error: ' + err.message);
+                        }
+                    });
+                });
+
+                groupsList.querySelectorAll('.admin-delete-btn').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        const groupId = btn.dataset.group;
+                        const groupName = btn.dataset.name;
+                        if (!confirm(`DELETE ${groupName}?\n\nThis will permanently remove the group and ALL its masks. This cannot be undone!`)) return;
+                        if (!confirm(`Are you SURE you want to delete ${groupName}? Type OK to confirm.`)) return;
+
+                        try {
+                            btn.textContent = 'Deleting...';
+                            btn.disabled = true;
+
+                            const response = await fetch(withAdmin(`${WORKER_URL}/group/delete`), {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ groupId })
+                            });
+
+                            if (!response.ok) {
+                                const data = await response.json();
+                                throw new Error(data.error || 'Failed to delete');
+                            }
+
+                            alert('Group deleted successfully');
+                            showAdminPanel(); // Refresh
+                        } catch (err) {
+                            alert('Error: ' + err.message);
+                            btn.textContent = 'Delete';
+                            btn.disabled = false;
                         }
                     });
                 });
