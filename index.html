@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<!-- Version 2.19-dev - Gestures apply to anchors -->
-<html lang="en" data-version="2.19-dev">
+<!-- Version 2.20-dev - Gestures apply to anchors -->
+<html lang="en" data-version="2.20-dev">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -997,7 +997,7 @@
             <button class="header-btn" id="galleryBtn">Choose Mask</button>
             <button class="header-btn" id="makeMaskBtn">Create Mask</button>
         </div>
-        <div class="tap-hint">tap screen to change masks &nbsp;&nbsp;&nbsp; <button class="share-btn" id="headerShareBtn">share this app</button> <span style="opacity:0.5">v2.19-dev</span></div>
+        <div class="tap-hint">tap screen to change masks &nbsp;&nbsp;&nbsp; <button class="share-btn" id="headerShareBtn">share this app</button> <span style="opacity:0.5">v2.20-dev</span></div>
 
         <!-- Face Tracking View -->
         <div class="view active" id="trackView">
@@ -1157,7 +1157,7 @@
         // Saved masks
         const savedMasks = [];
 
-        console.log('Durrell Masks v2.19-dev loaded');
+        console.log('Durrell Masks v2.20-dev loaded');
 
         // Anchor point placement state (eyes and mouth)
         let eyePointMode = false;
@@ -1182,6 +1182,7 @@
         // Save current mask's anchors (local or remote for admin)
         async function saveCurrentMaskAnchors() {
             if (!loadedMask || !loadedMaskId) {
+                updateStatus('track', 'No mask loaded');
                 return;
             }
 
@@ -1192,8 +1193,15 @@
                 if (maskIndex !== -1) {
                     localMasks[maskIndex].anchors = loadedMask.anchors;
                     localStorage.setItem('local_masks', JSON.stringify(localMasks));
+                    updateStatus('track', 'Local saved');
                 }
-            } else if (isAdmin && galleryManifest) {
+            } else if (!isAdmin) {
+                updateStatus('track', 'Not admin - cannot save');
+                return;
+            } else if (!galleryManifest) {
+                updateStatus('track', 'No manifest - cannot save');
+                return;
+            } else {
                 // Remote masks for admin - upload updated mask
                 const mask = galleryManifest.masks.find(m => m.id === loadedMaskId);
                 if (!mask) {
@@ -4699,6 +4707,7 @@
             overlay.addEventListener('touchend', (e) => {
                 if (e.touches.length < 2) {
                     if (gestureState) {
+                        updateStatus('track', 'Gesture ended, saving...');
                         saveCurrentMaskAnchors();
                     }
                     gestureState = null;
