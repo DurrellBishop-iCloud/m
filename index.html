@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<!-- Version 2.3-dev - Gestures apply to anchors -->
-<html lang="en" data-version="2.3-dev">
+<!-- Version 2.4-dev - Gestures apply to anchors -->
+<html lang="en" data-version="2.4-dev">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -997,7 +997,7 @@
             <button class="header-btn" id="galleryBtn">Choose Mask</button>
             <button class="header-btn" id="makeMaskBtn">Create Mask</button>
         </div>
-        <div class="tap-hint">tap screen to change masks &nbsp;&nbsp;&nbsp; <button class="share-btn" id="headerShareBtn">share this app</button> <span style="opacity:0.5">v2.3-dev</span></div>
+        <div class="tap-hint">tap screen to change masks &nbsp;&nbsp;&nbsp; <button class="share-btn" id="headerShareBtn">share this app</button> <span style="opacity:0.5">v2.4-dev</span></div>
 
         <!-- Face Tracking View -->
         <div class="view active" id="trackView">
@@ -1157,7 +1157,7 @@
         // Saved masks
         const savedMasks = [];
 
-        console.log('Durrell Masks v2.3-dev loaded');
+        console.log('Durrell Masks v2.4-dev loaded');
 
         // Anchor point placement state (eyes and mouth)
         let eyePointMode = false;
@@ -1195,6 +1195,10 @@
                 return false;
             }
             console.log('Applying adjustments to anchors...');
+            const appliedScale = maskAdjust.scale;
+            const appliedRotation = maskAdjust.rotation;
+            const appliedOffsetX = maskAdjust.offsetX;
+            const appliedOffsetY = maskAdjust.offsetY;
 
             const anchors = loadedMask.anchors;
 
@@ -1243,6 +1247,7 @@
             saveMaskAdjust();
 
             console.log('Adjustments applied and reset');
+            alert('Anchors adjusted!\nScale: ' + appliedScale.toFixed(2) + '\nRotation: ' + (appliedRotation * 180 / Math.PI).toFixed(1) + '°\nOffset: ' + appliedOffsetX.toFixed(0) + ',' + appliedOffsetY.toFixed(0));
             return true;
         }
 
