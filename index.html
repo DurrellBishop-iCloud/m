@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<!-- Version 2.1-dev - Gesture mask adjustment -->
-<html lang="en" data-version="2.1-dev">
+<!-- Version 2.2-dev - Gestures apply to anchors -->
+<html lang="en" data-version="2.2-dev">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -997,7 +997,7 @@
             <button class="header-btn" id="galleryBtn">Choose Mask</button>
             <button class="header-btn" id="makeMaskBtn">Create Mask</button>
         </div>
-        <div class="tap-hint">tap screen to change masks &nbsp;&nbsp;&nbsp; <button class="share-btn" id="headerShareBtn">share this app</button> <span style="opacity:0.5">v2.1-dev</span></div>
+        <div class="tap-hint">tap screen to change masks &nbsp;&nbsp;&nbsp; <button class="share-btn" id="headerShareBtn">share this app</button> <span style="opacity:0.5">v2.2-dev</span></div>
 
         <!-- Face Tracking View -->
         <div class="view active" id="trackView">
@@ -1157,7 +1157,7 @@
         // Saved masks
         const savedMasks = [];
 
-        console.log('Durrell Masks v2.1-dev loaded');
+        console.log('Durrell Masks v2.2-dev loaded');
 
         // Anchor point placement state (eyes and mouth)
         let eyePointMode = false;
@@ -1180,6 +1180,59 @@
 
         function saveMaskAdjust() {
             localStorage.setItem('mask_adjust', JSON.stringify(maskAdjust));
+        }
+
+        // Apply gesture adjustments to anchor points and reset adjustments
+        function applyAdjustmentsToAnchors() {
+            if (!loadedMask || !loadedMask.anchors) return false;
+            if (maskAdjust.offsetX === 0 && maskAdjust.offsetY === 0 &&
+                maskAdjust.scale === 1 && maskAdjust.rotation === 0) return false;
+
+            const anchors = loadedMask.anchors;
+
+            // Get current anchor positions in mask pixel coordinates
+            const leftX = anchors.leftEye.x * loadedMask.width;
+            const leftY = anchors.leftEye.y * loadedMask.height;
+            const rightX = anchors.rightEye.x * loadedMask.width;
+            const rightY = anchors.rightEye.y * loadedMask.height;
+
+            // Calculate midpoint and distance
+            const midX = (leftX + rightX) / 2;
+            const midY = (leftY + rightY) / 2;
+            const dx = rightX - leftX;
+            const dy = rightY - leftY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const angle = Math.atan2(dy, dx);
+
+            // Apply scale: divide distance by gestureScale (bigger gesture = anchors closer)
+            const newDist = dist / maskAdjust.scale;
+
+            // Apply rotation: subtract gesture rotation from anchor angle
+            const newAngle = angle - maskAdjust.rotation;
+
+            // Calculate new anchor positions from midpoint
+            const halfDist = newDist / 2;
+            const newLeftX = midX - Math.cos(newAngle) * halfDist;
+            const newLeftY = midY - Math.sin(newAngle) * halfDist;
+            const newRightX = midX + Math.cos(newAngle) * halfDist;
+            const newRightY = midY + Math.sin(newAngle) * halfDist;
+
+            // Apply offset (approximate: use mask dimensions as reference)
+            const offsetScale = 0.5; // Adjustment factor
+            const offsetNormX = (maskAdjust.offsetX * offsetScale) / loadedMask.width;
+            const offsetNormY = (maskAdjust.offsetY * offsetScale) / loadedMask.height;
+
+            // Update anchors (normalized 0-1)
+            anchors.leftEye.x = Math.max(0, Math.min(1, newLeftX / loadedMask.width + offsetNormX));
+            anchors.leftEye.y = Math.max(0, Math.min(1, newLeftY / loadedMask.height + offsetNormY));
+            anchors.rightEye.x = Math.max(0, Math.min(1, newRightX / loadedMask.width + offsetNormX));
+            anchors.rightEye.y = Math.max(0, Math.min(1, newRightY / loadedMask.height + offsetNormY));
+
+            // Reset adjustments
+            maskAdjust = { offsetX: 0, offsetY: 0, scale: 1, rotation: 0 };
+            saveMaskAdjust();
+
+            return true;
         }
 
         // Stroke effect
@@ -1736,6 +1789,9 @@
 
         function openEditMask() {
             if (!loadedMask || !maskImage) return;
+
+            // Apply any gesture adjustments to anchors before editing
+            applyAdjustmentsToAnchors();
 
             // Stop face tracking while editing
             stopTracking();
