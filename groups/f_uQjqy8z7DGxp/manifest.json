@@ -4,21 +4,6 @@
   "type": "friend",
   "masks": [
     {
-      "id": "mask-1769428343641",
-      "name": "iPhone-Jan26-1152",
-      "image": "groups/f_uQjqy8z7DGxp/images/mask-1769428343641.png",
-      "anchors": {
-        "leftEye": {
-          "x": 0.6028192371475953,
-          "y": 0.3899310565977232
-        },
-        "rightEye": {
-          "x": 0.33665008291873955,
-          "y": 0.39366245426851476
-        }
-      }
-    },
-    {
       "id": "mask-1769520066368",
       "name": "Mac-Jan27-1321",
       "image": "groups/f_uQjqy8z7DGxp/images/mask-1769520066368.png",
