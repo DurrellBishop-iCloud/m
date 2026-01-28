@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<!-- Version 2.7-dev - Gestures apply to anchors -->
-<html lang="en" data-version="2.7-dev">
+<!-- Version 2.8-dev - Gestures apply to anchors -->
+<html lang="en" data-version="2.8-dev">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -997,7 +997,7 @@
             <button class="header-btn" id="galleryBtn">Choose Mask</button>
             <button class="header-btn" id="makeMaskBtn">Create Mask</button>
         </div>
-        <div class="tap-hint">tap screen to change masks &nbsp;&nbsp;&nbsp; <button class="share-btn" id="headerShareBtn">share this app</button> <span style="opacity:0.5">v2.7-dev</span></div>
+        <div class="tap-hint">tap screen to change masks &nbsp;&nbsp;&nbsp; <button class="share-btn" id="headerShareBtn">share this app</button> <span style="opacity:0.5">v2.8-dev</span></div>
 
         <!-- Face Tracking View -->
         <div class="view active" id="trackView">
@@ -1157,7 +1157,7 @@
         // Saved masks
         const savedMasks = [];
 
-        console.log('Durrell Masks v2.7-dev loaded');
+        console.log('Durrell Masks v2.8-dev loaded');
 
         // Anchor point placement state (eyes and mouth)
         let eyePointMode = false;
@@ -1173,7 +1173,19 @@
 
         // Loaded mask for face tracking
         let loadedMask = null;  // { image: HTMLImageElement, anchors: { leftEye, rightEye } }
+        let loadedMaskId = null;  // ID of currently loaded mask (for saving)
         let maskImage = null;
+
+        // Save current mask's anchors to localStorage (local masks only)
+        function saveCurrentMaskAnchors() {
+            if (!loadedMask || !loadedMaskId || currentGroup !== 'local') return;
+            const localMasks = JSON.parse(localStorage.getItem('local_masks') || '[]');
+            const maskIndex = localMasks.findIndex(m => m.id === loadedMaskId);
+            if (maskIndex !== -1) {
+                localMasks[maskIndex].anchors = loadedMask.anchors;
+                localStorage.setItem('local_masks', JSON.stringify(localMasks));
+            }
+        }
 
         // Direct anchor adjustment via gestures (scale, rotate, and pan)
         function adjustAnchors(scaleRatio, rotationDelta, panX, panY) {
@@ -2403,6 +2415,7 @@
                             height: img.height,
                             anchors: maskData.anchors
                         };
+                        loadedMaskId = maskData.id || null;
 
                         // Only close gallery if it's open
                         if (!document.getElementById('galleryOverlay').classList.contains('hidden')) {
@@ -2433,6 +2446,7 @@
         async function reloadCurrentMask() {
             // Clear current mask
             loadedMask = null;
+            loadedMaskId = null;
             maskImage = null;
 
             // Reload gallery manifest
@@ -4555,11 +4569,17 @@
 
             overlay.addEventListener('touchend', (e) => {
                 if (e.touches.length < 2) {
+                    if (gestureState) {
+                        saveCurrentMaskAnchors();
+                    }
                     gestureState = null;
                 }
             });
 
             overlay.addEventListener('touchcancel', () => {
+                if (gestureState) {
+                    saveCurrentMaskAnchors();
+                }
                 gestureState = null;
             });
         })();
