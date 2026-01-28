@@ -77,6 +77,21 @@
           "y": 0.38
         }
       }
+    },
+    {
+      "id": "mask-1769637249176",
+      "name": "iPhone-Jan28-2154",
+      "image": "groups/f_W2BUBrA4Y5LD/images/mask-1769637249176.png",
+      "anchors": {
+        "leftEye": {
+          "x": 0.65,
+          "y": 0.38
+        },
+        "rightEye": {
+          "x": 0.35,
+          "y": 0.38
+        }
+      }
     }
   ]
 }
