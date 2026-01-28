@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<!-- Version 2.11-dev - Gestures apply to anchors -->
-<html lang="en" data-version="2.11-dev">
+<!-- Version 2.12-dev - Gestures apply to anchors -->
+<html lang="en" data-version="2.12-dev">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -997,7 +997,7 @@
             <button class="header-btn" id="galleryBtn">Choose Mask</button>
             <button class="header-btn" id="makeMaskBtn">Create Mask</button>
         </div>
-        <div class="tap-hint">tap screen to change masks &nbsp;&nbsp;&nbsp; <button class="share-btn" id="headerShareBtn">share this app</button> <span style="opacity:0.5">v2.11-dev</span></div>
+        <div class="tap-hint">tap screen to change masks &nbsp;&nbsp;&nbsp; <button class="share-btn" id="headerShareBtn">share this app</button> <span style="opacity:0.5">v2.12-dev</span></div>
 
         <!-- Face Tracking View -->
         <div class="view active" id="trackView">
@@ -1157,7 +1157,7 @@
         // Saved masks
         const savedMasks = [];
 
-        console.log('Durrell Masks v2.11-dev loaded');
+        console.log('Durrell Masks v2.12-dev loaded');
 
         // Anchor point placement state (eyes and mouth)
         let eyePointMode = false;
@@ -1202,11 +1202,11 @@
             let midX = (leftX + rightX) / 2;
             let midY = (leftY + rightY) / 2;
 
-            // Apply pan (convert screen pixels to normalized, negated for intuitive direction)
+            // Apply pan (convert screen pixels to normalized)
             // Sensitivity: ~500px pan = full mask width shift
             const panSensitivity = 0.002;
-            midX -= panX * panSensitivity;
-            midY -= panY * panSensitivity;
+            midX += panX * panSensitivity;
+            midY += panY * panSensitivity;
 
             // Vector from mid to right anchor
             let dx = rightX - (leftX + rightX) / 2;
