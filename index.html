@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<!-- Version 2.14-dev - Gestures apply to anchors -->
-<html lang="en" data-version="2.14-dev">
+<!-- Version 2.15-dev - Gestures apply to anchors -->
+<html lang="en" data-version="2.15-dev">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -997,7 +997,7 @@
             <button class="header-btn" id="galleryBtn">Choose Mask</button>
             <button class="header-btn" id="makeMaskBtn">Create Mask</button>
         </div>
-        <div class="tap-hint">tap screen to change masks &nbsp;&nbsp;&nbsp; <button class="share-btn" id="headerShareBtn">share this app</button> <span style="opacity:0.5">v2.14-dev</span></div>
+        <div class="tap-hint">tap screen to change masks &nbsp;&nbsp;&nbsp; <button class="share-btn" id="headerShareBtn">share this app</button> <span style="opacity:0.5">v2.15-dev</span></div>
 
         <!-- Face Tracking View -->
         <div class="view active" id="trackView">
@@ -1157,7 +1157,7 @@
         // Saved masks
         const savedMasks = [];
 
-        console.log('Durrell Masks v2.14-dev loaded');
+        console.log('Durrell Masks v2.15-dev loaded');
 
         // Anchor point placement state (eyes and mouth)
         let eyePointMode = false;
@@ -1175,6 +1175,9 @@
         let loadedMask = null;  // { image: HTMLImageElement, anchors: { leftEye, rightEye } }
         let loadedMaskId = null;  // ID of currently loaded mask (for saving)
         let maskImage = null;
+
+        // Track which masks have been unlocked for gesture editing (per session)
+        const unlockedMasks = new Set();
 
         // Save current mask's anchors to localStorage (local masks only)
         function saveCurrentMaskAnchors() {
@@ -4566,8 +4569,22 @@
                     // Only allow gesture adjustments for local masks or admin
                     if (currentGroup !== 'local' && !isAdmin) return;
 
+                    // Need a mask loaded to adjust
+                    if (!loadedMaskId) return;
+
                     e.preventDefault();
                     e.stopPropagation();
+
+                    // Check if this mask has been unlocked for editing
+                    if (!unlockedMasks.has(loadedMaskId)) {
+                        // First time for this mask - ask to unlock
+                        if (confirm('Unlock to edit position?')) {
+                            unlockedMasks.add(loadedMaskId);
+                        } else {
+                            return; // Cancelled - don't start gesture, will ask again next time
+                        }
+                    }
+
                     const data = getTouchData(e);
                     gestureState = {
                         lastDistance: data.distance,
