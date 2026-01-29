@@ -1084,7 +1084,7 @@
                         <button class="menu-item" id="menuAdminBtn" style="display:none;">Admin Panel</button>
                     </div>
                 </div>
-                <div class="tap-hint"><span style="opacity:0.5">v2.36-dev</span></div>
+                <div class="tap-hint"><span style="opacity:0.5">v2.37-dev</span></div>
                 <video id="video" autoplay playsinline muted></video>
                 <canvas id="debugCanvas"></canvas>
                 <div id="tapOverlay" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:100;touch-action:none;"></div>
@@ -1141,6 +1141,7 @@
         <div class="view" id="captureView">
             <!-- Edit controls (above canvas so always accessible) -->
             <div class="controls hidden" id="editControls">
+                <button class="control-btn" id="closeEditBtn">Close</button>
                 <button class="control-btn" id="retakeBtn">Retake</button>
                 <button class="control-btn" id="eraseBtn">Erase</button>
                 <button class="control-btn" id="createTextureBtn">Change Texture</button>
@@ -1174,6 +1175,7 @@
             </div>
 
             <div class="controls" id="captureControls">
+                <button class="control-btn" id="closeCaptureBtn">Close</button>
                 <button class="control-btn" id="loadPictureBtn">Load Picture</button>
                 <button class="control-btn primary" id="takePhotoBtn">Take Photo</button>
                 <input type="file" id="pictureInput" accept="image/*" style="display:none;">
@@ -1240,7 +1242,7 @@
         // Saved masks
         const savedMasks = [];
 
-        console.log('Durrell Masks v2.36-dev loaded');
+        console.log('Durrell Masks v2.37-dev loaded');
 
         // Anchor point placement state (eyes and mouth)
         let eyePointMode = false;
@@ -4591,6 +4593,14 @@
         });
         document.getElementById('pictureInput').addEventListener('change', loadPictureFromFile);
         document.getElementById('retakeBtn').addEventListener('click', retakePhoto);
+
+        // Close buttons in capture view
+        document.getElementById('closeCaptureBtn').addEventListener('click', () => {
+            switchView('track');
+        });
+        document.getElementById('closeEditBtn').addEventListener('click', () => {
+            switchView('track');
+        });
 
         // Tap on preview canvas - either cut holes or place eye points (not in erase mode)
         function handleCanvasTap(e) {
