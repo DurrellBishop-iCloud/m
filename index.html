@@ -1083,7 +1083,7 @@
                         <button class="menu-item" id="headerShareBtn">Share Mask Maker with friends</button>
                     </div>
                 </div>
-                <div class="tap-hint"><span style="opacity:0.5">v2.33-dev</span></div>
+                <div class="tap-hint"><span style="opacity:0.5">v2.34-dev</span></div>
                 <video id="video" autoplay playsinline muted></video>
                 <canvas id="debugCanvas"></canvas>
                 <div id="tapOverlay" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:100;touch-action:none;"></div>
@@ -1091,7 +1091,6 @@
                     <div class="spinner"></div>
                     <div class="loading-text" id="loadingText">Initializing...</div>
                 </div>
-                <div id="trackStatus" style="position:absolute;bottom:60px;left:0;right:0;text-align:center;color:#fff;background:rgba(0,0,0,0.7);padding:8px;font-size:14px;z-index:150;display:none;"></div>
             </div>
 
             <!-- Mask Gallery Overlay -->
@@ -1240,7 +1239,7 @@
         // Saved masks
         const savedMasks = [];
 
-        console.log('Durrell Masks v2.33-dev loaded');
+        console.log('Durrell Masks v2.34-dev loaded');
 
         // Anchor point placement state (eyes and mouth)
         let eyePointMode = false;
@@ -1675,7 +1674,6 @@
 
                 hideLoading();
                 isTracking = true;
-                updateStatus('track', 'Face tracking active');
 
                 detectFaces();
             } catch (error) {
