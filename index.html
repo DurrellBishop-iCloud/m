@@ -1080,7 +1080,7 @@
                         <button class="menu-item" id="menuAdminBtn" style="display:none;">Admin Panel</button>
                     </div>
                 </div>
-                <div class="tap-hint"><span style="opacity:0.5">v2.49-dev</span></div>
+                <div class="tap-hint"><span style="opacity:0.5">v2.50-dev</span></div>
                 <video id="video" autoplay playsinline muted></video>
                 <canvas id="debugCanvas"></canvas>
                 <div id="tapOverlay" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:100;touch-action:none;"></div>
@@ -1150,17 +1150,17 @@
                 <input type="range" id="toleranceSlider" min="10" max="150" value="60">
                 <span class="slider-value" id="toleranceValue">60</span>
             </div>
-            <div class="controls hidden" id="createTextureControls" style="background:red;">
+            <div class="controls hidden" id="createTextureControls">
                 <button class="control-btn" id="cancelCreateTextureBtn">Cancel</button>
                 <button class="control-btn success" id="captureCreateTextureBtn">Capture Texture</button>
             </div>
             <!-- Eye controls - buttons hidden but div needed for code flow -->
-            <div class="controls hidden" id="eyeControls" style="background:blue;">
+            <div class="controls hidden" id="eyeControls">
                 <button class="control-btn eye-btn" id="eyeRightBtn" style="display:none;">Left Eye Location</button>
                 <button class="control-btn eye-btn" id="eyeLeftBtn" style="display:none;">Right Eye Location</button>
             </div>
 
-            <div class="controls" id="captureControls" style="padding:6px 8px;gap:4px;background:green;">
+            <div class="controls" id="captureControls" style="padding:6px 8px;gap:4px;">
                 <button class="control-btn" id="closeCaptureBtn">Close</button>
                 <button class="control-btn" id="loadPictureBtn">Load Picture</button>
                 <button class="control-btn primary" id="takePhotoBtn">Take Photo</button>
@@ -1168,7 +1168,7 @@
             </div>
 
             <!-- Camera state -->
-            <div id="captureCamera" class="camera-container" style="background:orange;">
+            <div id="captureCamera" class="camera-container">
                 <video id="captureVideo" autoplay playsinline muted></video>
             </div>
 
@@ -1238,7 +1238,7 @@
         // Saved masks
         const savedMasks = [];
 
-        console.log('Durrell Masks v2.49-dev loaded');
+        console.log('Durrell Masks v2.50-dev loaded');
 
         // Anchor point placement state (eyes and mouth)
         let eyePointMode = false;
@@ -2563,7 +2563,7 @@
                 document.getElementById('captureControls').classList.add('hidden');
                 document.getElementById('editControls').classList.remove('hidden');
                 document.getElementById('editHelpText').classList.remove('hidden');
-                document.getElementById('eyeControls').classList.remove('hidden');
+                // document.getElementById('eyeControls').classList.remove('hidden');
 
                 // Change Retake button to Cancel when editing
                 document.getElementById('retakeBtn').textContent = 'Cancel';
@@ -2826,7 +2826,7 @@
             document.getElementById('createTextureControls').classList.add('hidden');
             document.getElementById('editControls').classList.remove('hidden');
             document.getElementById('editHelpText').classList.remove('hidden');
-            document.getElementById('eyeControls').classList.remove('hidden');
+            // document.getElementById('eyeControls').classList.remove('hidden');
             document.getElementById('toleranceRow').classList.remove('hidden');
 
             // Redraw mask
@@ -2894,7 +2894,7 @@
             document.getElementById('createTextureControls').classList.add('hidden');
             document.getElementById('editControls').classList.remove('hidden');
             document.getElementById('editHelpText').classList.remove('hidden');
-            document.getElementById('eyeControls').classList.remove('hidden');
+            // document.getElementById('eyeControls').classList.remove('hidden');
             document.getElementById('toleranceRow').classList.remove('hidden');
 
             // Redraw with markers
@@ -3027,7 +3027,7 @@
             document.getElementById('captureControls').classList.add('hidden');
             document.getElementById('editControls').classList.remove('hidden');
             document.getElementById('editHelpText').classList.remove('hidden');
-            document.getElementById('eyeControls').classList.remove('hidden');
+            // document.getElementById('eyeControls').classList.remove('hidden');
             document.getElementById('toleranceRow').classList.remove('hidden');
 
             // Run initial background removal
@@ -3069,7 +3069,7 @@
                 document.getElementById('captureControls').classList.add('hidden');
                 document.getElementById('editControls').classList.remove('hidden');
                 document.getElementById('editHelpText').classList.remove('hidden');
-                document.getElementById('eyeControls').classList.remove('hidden');
+                // document.getElementById('eyeControls').classList.remove('hidden');
                 document.getElementById('toleranceRow').classList.remove('hidden');
 
                 // Run initial background removal
