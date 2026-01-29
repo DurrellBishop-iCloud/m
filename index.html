@@ -1084,7 +1084,7 @@
                         <button class="menu-item" id="menuAdminBtn" style="display:none;">Admin Panel</button>
                     </div>
                 </div>
-                <div class="tap-hint"><span style="opacity:0.5">v2.39-dev</span></div>
+                <div class="tap-hint"><span style="opacity:0.5">v2.40-dev</span></div>
                 <video id="video" autoplay playsinline muted></video>
                 <canvas id="debugCanvas"></canvas>
                 <div id="tapOverlay" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:100;touch-action:none;"></div>
@@ -1141,7 +1141,7 @@
         <div class="view" id="captureView">
             <!-- Edit controls (above canvas so always accessible) -->
             <div class="controls hidden" id="editControls" style="margin-bottom:4px;">
-                <button class="control-btn" id="closeEditBtn">Close</button>
+                <button class="control-btn" id="closeCreateBtn">Close</button>
                 <button class="control-btn" id="retakeBtn">Retake</button>
                 <button class="control-btn" id="eraseBtn">Erase</button>
                 <button class="control-btn" id="createTextureBtn">Change Texture</button>
@@ -1243,7 +1243,7 @@
         // Saved masks
         const savedMasks = [];
 
-        console.log('Durrell Masks v2.39-dev loaded');
+        console.log('Durrell Masks v2.40-dev loaded');
 
         // Anchor point placement state (eyes and mouth)
         let eyePointMode = false;
@@ -4599,7 +4599,7 @@
         document.getElementById('closeCaptureBtn').addEventListener('click', () => {
             switchView('track');
         });
-        document.getElementById('closeEditBtn').addEventListener('click', () => {
+        document.getElementById('closeCreateBtn').addEventListener('click', () => {
             switchView('track');
         });
 
