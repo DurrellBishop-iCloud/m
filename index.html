@@ -1080,7 +1080,7 @@
                         <button class="menu-item" id="menuAdminBtn" style="display:none;">Admin Panel</button>
                     </div>
                 </div>
-                <div class="tap-hint"><span style="opacity:0.5">v2.57-dev</span></div>
+                <div class="tap-hint"><span style="opacity:0.5">v2.58-dev</span></div>
                 <video id="video" autoplay playsinline muted></video>
                 <canvas id="debugCanvas"></canvas>
                 <div id="tapOverlay" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:100;touch-action:none;"></div>
@@ -1238,7 +1238,7 @@
         // Saved masks
         const savedMasks = [];
 
-        console.log('Durrell Masks v2.57-dev loaded');
+        console.log('Durrell Masks v2.58-dev loaded');
 
         // Anchor point placement state (eyes and mouth)
         let eyePointMode = false;
@@ -1592,19 +1592,26 @@
         // Make Mask button - goes directly to capture for current group
         document.getElementById('makeMaskBtn').addEventListener('click', () => {
             const dbg = document.getElementById('debugInfo');
-            dbg.textContent = 'CLICKED! group=' + currentGroup + ' admin=' + isAdmin;
-            toggleMenu(false);
-            // Non-admins can't make masks for public - switch to local instead
-            if (currentGroup === 'public' && !isAdmin) {
-                dbg.textContent += ' | SWITCHING TO LOCAL';
-                currentGroup = 'local';
-                currentGroupName = 'Local-masks';
-                currentGroupType = 'local';
-                localStorage.setItem('selectedGroup', 'local');
-                updateHeader();
+            try {
+                dbg.textContent = 'CLICKED! group=' + currentGroup + ' admin=' + isAdmin;
+                toggleMenu(false);
+                // Non-admins can't make masks for public - switch to local instead
+                if (currentGroup === 'public' && !isAdmin) {
+                    dbg.textContent += ' | SWITCHING';
+                    currentGroup = 'local';
+                    currentGroupName = 'Local-masks';
+                    currentGroupType = 'local';
+                    localStorage.setItem('selectedGroup', 'local');
+                    dbg.textContent += ' | vars set';
+                    updateHeader();
+                    dbg.textContent += ' | header updated';
+                }
+                dbg.textContent += ' | calling switchView';
+                switchView('capture');
+                dbg.textContent += ' | DONE';
+            } catch (e) {
+                dbg.textContent = 'ERROR: ' + e.message;
             }
-            dbg.textContent += ' | calling switchView';
-            switchView('capture');
         });
 
         // Legacy constants (kept for compatibility)
