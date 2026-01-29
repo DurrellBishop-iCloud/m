@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<!-- Version 2.16 - Gestures apply to anchors -->
-<html lang="en" data-version="2.16">
+<!-- Version 2.21 - Gestures apply to anchors -->
+<html lang="en" data-version="2.21">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -997,7 +997,7 @@
             <button class="header-btn" id="galleryBtn">Choose Mask</button>
             <button class="header-btn" id="makeMaskBtn">Create Mask</button>
         </div>
-        <div class="tap-hint">tap screen to change masks &nbsp;&nbsp;&nbsp; <button class="share-btn" id="headerShareBtn">share this app</button> <span style="opacity:0.5">v2.16</span></div>
+        <div class="tap-hint">tap screen to change masks &nbsp;&nbsp;&nbsp; <button class="share-btn" id="headerShareBtn">share this app</button> <span style="opacity:0.5">v2.21</span></div>
 
         <!-- Face Tracking View -->
         <div class="view active" id="trackView">
@@ -1009,6 +1009,7 @@
                     <div class="spinner"></div>
                     <div class="loading-text" id="loadingText">Initializing...</div>
                 </div>
+                <div id="trackStatus" style="position:absolute;bottom:60px;left:0;right:0;text-align:center;color:#fff;background:rgba(0,0,0,0.7);padding:8px;font-size:14px;z-index:150;display:none;"></div>
             </div>
 
             <!-- Mask Gallery Overlay -->
@@ -1157,7 +1158,7 @@
         // Saved masks
         const savedMasks = [];
 
-        console.log('Durrell Masks v2.16 loaded');
+        console.log('Durrell Masks v2.21 loaded');
 
         // Anchor point placement state (eyes and mouth)
         let eyePointMode = false;
@@ -1179,14 +1180,92 @@
         // Track which masks have been unlocked for gesture editing (per session)
         const unlockedMasks = new Set();
 
-        // Save current mask's anchors to localStorage (local masks only)
-        function saveCurrentMaskAnchors() {
-            if (!loadedMask || !loadedMaskId || currentGroup !== 'local') return;
-            const localMasks = JSON.parse(localStorage.getItem('local_masks') || '[]');
-            const maskIndex = localMasks.findIndex(m => m.id === loadedMaskId);
-            if (maskIndex !== -1) {
-                localMasks[maskIndex].anchors = loadedMask.anchors;
-                localStorage.setItem('local_masks', JSON.stringify(localMasks));
+        // Save current mask's anchors (local or remote for admin)
+        async function saveCurrentMaskAnchors() {
+            if (!loadedMask || !loadedMaskId) return;
+
+            if (currentGroup === 'local') {
+                // Local masks - save to localStorage
+                const localMasks = JSON.parse(localStorage.getItem('local_masks') || '[]');
+                const maskIndex = localMasks.findIndex(m => m.id === loadedMaskId);
+                if (maskIndex !== -1) {
+                    localMasks[maskIndex].anchors = loadedMask.anchors;
+                    localStorage.setItem('local_masks', JSON.stringify(localMasks));
+                }
+            } else if (!isAdmin || !galleryManifest) {
+                return;
+            } else {
+                // Remote masks for admin - upload updated mask
+                const mask = galleryManifest.masks.find(m => m.id === loadedMaskId);
+                if (!mask) {
+                    updateStatus('track', 'Save failed: mask not found');
+                    return;
+                }
+                if (!maskImage) {
+                    updateStatus('track', 'Save failed: no image');
+                    return;
+                }
+
+                updateStatus('track', 'Saving position...');
+
+                try {
+                    // Convert current maskImage to data URL
+                    const canvas = document.createElement('canvas');
+                    canvas.width = maskImage.width;
+                    canvas.height = maskImage.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(maskImage, 0, 0);
+
+                    let imageDataUrl;
+                    try {
+                        imageDataUrl = canvas.toDataURL('image/png');
+                    } catch (e) {
+                        updateStatus('track', 'Save failed: cross-origin');
+                        return;
+                    }
+
+                    // Upload with new anchors
+                    let uploadUrl = `${WORKER_URL}/upload`;
+                    uploadUrl = withAdmin(uploadUrl);
+
+                    const response = await fetch(uploadUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            group: currentGroup,
+                            name: mask.name,
+                            imageData: imageDataUrl,
+                            anchors: loadedMask.anchors
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok && result.mask) {
+                        // Delete old version
+                        const oldId = mask.id;
+                        await fetch(withAdmin(`${WORKER_URL}/mask`), {
+                            method: 'DELETE',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                group: currentGroup,
+                                maskId: oldId
+                            })
+                        });
+
+                        // Update loaded mask ID to the new one
+                        loadedMaskId = result.mask.id;
+
+                        // Reload manifest to get fresh data
+                        await loadGalleryManifest();
+
+                        updateStatus('track', 'Position saved!');
+                    } else {
+                        updateStatus('track', 'Save failed: ' + (result.error || 'upload error'));
+                    }
+                } catch (error) {
+                    updateStatus('track', 'Save failed: ' + error.message);
+                }
             }
         }
 
@@ -3594,9 +3673,20 @@
         // UI HELPERS
         // ============================================
 
+        let trackStatusTimeout = null;
         function updateStatus(view, message) {
             const el = document.getElementById(view + 'Status');
-            if (el) el.textContent = message;
+            if (el) {
+                el.textContent = message;
+                // For track view, show/hide with timeout
+                if (view === 'track') {
+                    el.style.display = 'block';
+                    if (trackStatusTimeout) clearTimeout(trackStatusTimeout);
+                    trackStatusTimeout = setTimeout(() => {
+                        el.style.display = 'none';
+                    }, 3000);
+                }
+            }
         }
 
         function showLoading(text) {
