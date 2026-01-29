@@ -38,16 +38,23 @@
             flex-direction: column;
         }
 
-        /* Header bar */
+        /* Header bar - floats over content */
         .header-bar {
-            background: #141414;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
             padding: 8px 12px;
+            z-index: 150;
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-start;
             align-items: center;
             font-size: 14px;
-            border-bottom: 1px solid #1a1a1a;
-            gap: 8px;
+            pointer-events: none;
+        }
+
+        .header-bar > * {
+            pointer-events: auto;
         }
 
         .header-bar .group-name {
@@ -78,6 +85,65 @@
             color: white;
         }
 
+        .header-bar .header-btn.active {
+            background: #fff;
+            color: #000;
+            border-color: #fff;
+        }
+
+        .menu-btn {
+            background: none;
+            border: 1px solid #888;
+            color: #888;
+            padding: 4px 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .menu-btn.active {
+            background: #fff;
+            color: #000;
+            border-color: #fff;
+        }
+
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 12px;
+            z-index: 200;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .dropdown-menu.open {
+            display: flex;
+        }
+
+        .dropdown-menu .menu-item {
+            background: none;
+            border: 1px solid #888;
+            color: #888;
+            padding: 12px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            text-align: left;
+        }
+
+        .dropdown-menu .menu-item:active {
+            background: #888;
+            color: white;
+        }
+
+        .dropdown-menu .menu-item.active {
+            background: #fff;
+            color: #000;
+            border-color: #fff;
+        }
+
         .share-btn {
             background: none;
             border: none;
@@ -93,10 +159,16 @@
         }
 
         .tap-hint {
+            position: absolute;
+            bottom: 8px;
+            left: 0;
+            right: 0;
             text-align: center;
             font-size: 10px;
             color: white;
             padding: 2px 0;
+            z-index: 150;
+            pointer-events: none;
         }
 
         /* View containers */
@@ -122,16 +194,18 @@
 
         #video, #captureVideo {
             position: absolute;
-            top: 0;
-            left: 0;
+            top: 50%;
+            left: 50%;
+            transform: translateX(-50%) translateY(-50%);
             width: 100%;
-            height: 100%;
-            object-fit: cover;
+            height: auto;
+            max-height: 100%;
+            object-fit: contain;
         }
 
         #video {
-            transform: scaleX(-1);
-            -webkit-transform: scaleX(-1);
+            transform: translateX(-50%) translateY(-50%) scaleX(-1);
+            -webkit-transform: translateX(-50%) translateY(-50%) scaleX(-1);
         }
 
         #debugCanvas, #captureCanvas {
@@ -144,9 +218,9 @@
         }
 
         #previewCanvas {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
+            display: block;
+            width: 100%;
+            height: auto;
             cursor: crosshair;
         }
 
@@ -293,7 +367,7 @@
             -webkit-appearance: none;
             width: 20px;
             height: 20px;
-            background: #888;
+            background: #fff;
             border-radius: 50%;
             cursor: pointer;
         }
@@ -309,11 +383,7 @@
         .preview-container {
             position: relative;
             width: 100%;
-            flex: 1;
-            min-height: 300px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: block;
         }
 
         .preview-container img {
@@ -444,9 +514,9 @@
             right: 5px;
             width: 24px;
             height: 24px;
-            background: none;
-            border: 1px solid #e74c3c;
-            color: #e74c3c;
+            background: #000;
+            border: none;
+            color: #fff;
             font-size: 14px;
             font-weight: bold;
             cursor: pointer;
@@ -456,7 +526,7 @@
         }
 
         .gallery-mask-item .delete-btn:active {
-            background: #e74c3c;
+            background: #333;
             color: white;
         }
 
@@ -465,15 +535,15 @@
             bottom: 5px;
             right: 5px;
             padding: 4px 10px;
-            background: none;
-            border: 1px solid #e74c3c;
-            color: #e74c3c;
+            background: #000;
+            border: none;
+            color: #fff;
             font-size: 11px;
             cursor: pointer;
         }
 
         .gallery-mask-item .edit-btn:active {
-            background: #e74c3c;
+            background: #333;
             color: white;
         }
 
@@ -971,37 +1041,46 @@
 
     <!-- Admin Panel Modal -->
     <div class="modal-overlay hidden" id="adminPanelModal">
-        <div class="modal" style="max-height:80vh;overflow-y:auto;">
-            <h3>Admin Panel</h3>
+        <div class="modal" style="max-height:90vh;display:flex;flex-direction:column;">
+            <h3 style="flex-shrink:0;">Admin Panel</h3>
 
-            <div style="margin-bottom:16px;">
+            <div style="margin-bottom:16px;flex-shrink:0;">
                 <button class="modal-btn" id="createPublicGroupBtn">Create Public Group</button>
                 <button class="modal-btn" id="createFriendGroupBtn">Create Friend Group</button>
             </div>
 
-            <div class="modal-divider"></div>
-            <div style="margin:12px 0 8px 0;font-size:12px;">All Groups</div>
-            <div id="adminGroupsList" style="max-height:450px;overflow-y:auto;"></div>
+            <div class="modal-divider" style="flex-shrink:0;"></div>
+            <div style="margin:12px 0 8px 0;font-size:12px;flex-shrink:0;">All Groups</div>
+            <div id="adminGroupsList" style="flex:1;overflow-y:auto;min-height:100px;"></div>
 
-            <div class="modal-divider"></div>
-            <button class="modal-cancel" id="adminPanelCloseBtn">Close</button>
-            <button class="modal-btn" id="adminLogoutBtn" style="margin-top:8px;background:#666;">Log out of admin</button>
+            <div class="modal-divider" style="flex-shrink:0;"></div>
+            <button class="modal-cancel" id="adminPanelCloseBtn" style="flex-shrink:0;">Close</button>
+            <button class="modal-btn" id="adminLogoutBtn" style="margin-top:8px;background:#666;flex-shrink:0;">Log out of admin</button>
         </div>
     </div>
 
     <div id="debugInfo" style="display:none;position:fixed;bottom:10px;left:10px;background:rgba(0,0,0,0.8);color:#0f0;font-family:monospace;font-size:12px;padding:10px;z-index:9999;max-width:90%;"></div>
     <div class="container">
-        <!-- Header with group name and buttons -->
-        <div class="header-bar" id="headerBar">
-            <span class="group-name" id="groupNameHeader">Public-masks</span>
-            <button class="header-btn" id="galleryBtn">Choose Mask</button>
-            <button class="header-btn" id="makeMaskBtn">Create Mask</button>
-        </div>
-        <div class="tap-hint">tap screen to change masks &nbsp;&nbsp;&nbsp; <button class="share-btn" id="headerShareBtn">share this app</button> <span style="opacity:0.5">v2.21</span></div>
-
         <!-- Face Tracking View -->
         <div class="view active" id="trackView">
             <div class="camera-container">
+                <!-- Header floats over video -->
+                <div class="header-bar" id="headerBar">
+                    <button class="menu-btn" id="menuBtn">Menu</button>
+                    <div class="dropdown-menu" id="dropdownMenu">
+                        <div style="font-size:10px;color:#888;padding:4px 8px;display:flex;justify-content:space-between;">
+                            <span>tap screen to change masks</span>
+                            <span id="menuGroupName">Local-masks</span>
+                        </div>
+                        <button class="menu-item" id="groupNameHeader">Choose a different group of masks</button>
+                        <button class="menu-item" id="galleryBtn">Pick a different mask</button>
+                        <button class="menu-item" id="makeMaskBtn">Create your own mask</button>
+                        <button class="menu-item" id="editPosBtn" style="display:none;">Align mask to your face</button>
+                        <button class="menu-item" id="headerShareBtn">Share Mask Maker with friends</button>
+                        <button class="menu-item" id="menuAdminBtn" style="display:none;">Admin Panel</button>
+                    </div>
+                </div>
+                <div class="tap-hint"><span style="opacity:0.5">v2.60</span></div>
                 <video id="video" autoplay playsinline muted></video>
                 <canvas id="debugCanvas"></canvas>
                 <div id="tapOverlay" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:100;touch-action:none;"></div>
@@ -1009,7 +1088,6 @@
                     <div class="spinner"></div>
                     <div class="loading-text" id="loadingText">Initializing...</div>
                 </div>
-                <div id="trackStatus" style="position:absolute;bottom:60px;left:0;right:0;text-align:center;color:#fff;background:rgba(0,0,0,0.7);padding:8px;font-size:14px;z-index:150;display:none;"></div>
             </div>
 
             <!-- Mask Gallery Overlay -->
@@ -1058,28 +1136,36 @@
         <!-- Capture/Create Mask View -->
         <div class="view" id="captureView">
             <!-- Edit controls (above canvas so always accessible) -->
-            <div class="controls hidden" id="editControls">
+            <div class="controls hidden" id="editControls" style="padding:4px 8px;margin-bottom:0;gap:4px;">
+                <button class="control-btn" id="closeCreateBtn">Close</button>
                 <button class="control-btn" id="retakeBtn">Retake</button>
                 <button class="control-btn" id="eraseBtn">Erase</button>
-                <button class="control-btn" id="createTextureBtn">Change Texture</button>
-                <button class="control-btn" id="strokeBtn">Stroke</button>
+                <button class="control-btn" id="createTextureBtn">Fill - Camera</button>
+                <!-- <button class="control-btn" id="strokeBtn">Stroke</button> -->
+                <button class="control-btn primary" id="saveBtn">Save</button>
+            </div>
+            <div class="hidden" id="editHelpText" style="padding:1px 8px;background:#222;color:#888;font-size:11px;">Use Tolerance, Erase or tap the screen to cut out background</div>
+            <div class="slider-row" id="toleranceRow" style="margin-top:0;padding:1px 8px 6px 8px;">
+                <label>Tolerance:</label>
+                <input type="range" id="toleranceSlider" min="10" max="150" value="60">
+                <span class="slider-value" id="toleranceValue">60</span>
             </div>
             <div class="controls hidden" id="createTextureControls">
                 <button class="control-btn" id="cancelCreateTextureBtn">Cancel</button>
                 <button class="control-btn success" id="captureCreateTextureBtn">Capture Texture</button>
             </div>
+            <!-- Eye controls - buttons hidden but div needed for code flow -->
             <div class="controls hidden" id="eyeControls">
-                <button class="control-btn eye-btn" id="eyeRightBtn" style="display:none">Left Eye Location</button>
-                <button class="control-btn primary" id="saveBtn">Save</button>
-                <button class="control-btn eye-btn" id="eyeLeftBtn" style="display:none">Right Eye Location</button>
+                <button class="control-btn eye-btn" id="eyeRightBtn" style="display:none;">Left Eye Location</button>
+                <button class="control-btn eye-btn" id="eyeLeftBtn" style="display:none;">Right Eye Location</button>
             </div>
 
-            <div class="slider-row" id="toleranceRow">
-                <label>Tolerance:</label>
-                <input type="range" id="toleranceSlider" min="10" max="150" value="60">
-                <span class="slider-value" id="toleranceValue">60</span>
+            <div class="controls" id="captureControls" style="padding:6px 8px;gap:4px;">
+                <button class="control-btn" id="closeCaptureBtn">Close</button>
+                <button class="control-btn" id="loadPictureBtn">Load Picture</button>
+                <button class="control-btn primary" id="takePhotoBtn">Take Photo</button>
+                <input type="file" id="pictureInput" accept="image/*" style="display:none;">
             </div>
-
 
             <!-- Camera state -->
             <div id="captureCamera" class="camera-container">
@@ -1089,12 +1175,6 @@
             <!-- Preview state (after photo taken) -->
             <div id="capturePreview" class="preview-container transparency-bg hidden">
                 <canvas id="previewCanvas"></canvas>
-            </div>
-
-            <div class="controls" id="captureControls">
-                <button class="control-btn" id="loadPictureBtn">Load Picture</button>
-                <button class="control-btn primary" id="takePhotoBtn">Take Photo</button>
-                <input type="file" id="pictureInput" accept="image/*" style="display:none;">
             </div>
 
             <div class="status" id="captureStatus">Point camera at your drawing and tap "Take Photo"</div>
@@ -1158,7 +1238,7 @@
         // Saved masks
         const savedMasks = [];
 
-        console.log('Durrell Masks v2.21 loaded');
+        console.log('Durrell Masks v2.60 loaded');
 
         // Anchor point placement state (eyes and mouth)
         let eyePointMode = false;
@@ -1397,7 +1477,7 @@
         // Get group from URL param, or use last group, or default to local
         // ?friend=xxx means group is the friend token
         // ?group=xxx means regular group (public or legacy)
-        const currentGroup = friendToken || urlParams.get('group') || localStorage.getItem('mask_last_group') || 'local';
+        let currentGroup = friendToken || urlParams.get('group') || localStorage.getItem('mask_last_group') || 'local';
 
         // Check if current group has a friend token stored
         if (!currentGroupToken && currentGroup !== 'local') {
@@ -1427,19 +1507,67 @@
             currentGroupType = 'public';
         }
 
-        // Update header bar with group name
+        // Position editing mode
+        let isEditingPosition = false;
+
+        // Update header bar
         function updateHeader() {
-            const groupNameEl = document.getElementById('groupNameHeader');
-            let displayName = currentGroupName;
-            if (currentGroupType === 'local') {
-                displayName = 'Local-masks';
-            } else if (currentGroupType === 'public' && currentGroup === 'public') {
-                displayName = 'Public-masks';
-            }
-            // Show admin indicator
-            groupNameEl.textContent = isAdmin ? '* ' + displayName : displayName;
+            // Show Edit Position button if user can edit (local or admin)
+            const editPosBtn = document.getElementById('editPosBtn');
+            const canEdit = currentGroup === 'local' || isAdmin;
+            editPosBtn.style.display = canEdit ? '' : 'none';
+            editPosBtn.classList.toggle('active', isEditingPosition);
+
+            // Update menu button to show admin indicator
+            const menuBtn = document.getElementById('menuBtn');
+            menuBtn.textContent = isAdmin ? '* Menu' : 'Menu';
+
+            // Update group name in menu header
+            const menuGroupName = document.getElementById('menuGroupName');
+            menuGroupName.textContent = currentGroupName;
+
+            // Show Admin Panel button only for admins
+            const menuAdminBtn = document.getElementById('menuAdminBtn');
+            menuAdminBtn.style.display = isAdmin ? '' : 'none';
+
+            // Update Create mask button text based on whether user can create in current group
+            const makeMaskBtn = document.getElementById('makeMaskBtn');
+            const canCreateInGroup = currentGroup !== 'public' || isAdmin;
+            makeMaskBtn.textContent = canCreateInGroup ? 'Create your own mask' : 'Make your own Local-mask';
         }
         updateHeader();
+
+        // Menu toggle
+        const menuBtn = document.getElementById('menuBtn');
+        const dropdownMenu = document.getElementById('dropdownMenu');
+
+        function toggleMenu(show) {
+            const isOpen = show !== undefined ? show : !dropdownMenu.classList.contains('open');
+            dropdownMenu.classList.toggle('open', isOpen);
+            menuBtn.classList.toggle('active', isOpen);
+        }
+
+        menuBtn.addEventListener('click', () => toggleMenu());
+
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!menuBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
+                toggleMenu(false);
+            }
+        });
+
+        // Edit Position button handler
+        document.getElementById('editPosBtn').addEventListener('click', () => {
+            isEditingPosition = !isEditingPosition;
+            updateHeader();
+            toggleMenu(false);
+        });
+
+        // Admin Panel button handler
+        document.getElementById('menuAdminBtn').addEventListener('click', () => {
+            toggleMenu(false);
+            showAdminPanel();
+        });
 
         // Helper: Add admin param to URL if admin
         function withAdmin(url) {
@@ -1463,10 +1591,14 @@
 
         // Make Mask button - goes directly to capture for current group
         document.getElementById('makeMaskBtn').addEventListener('click', () => {
-            // Non-admins can't make masks for public
+            toggleMenu(false);
+            // Non-admins can't make masks for public - switch to local instead
             if (currentGroup === 'public' && !isAdmin) {
-                alert('Public-masks can\'t be accessed.\nSwitch to Local-masks or make your own New Group-masks.\n(These can be shared with friends)');
-                return;
+                currentGroup = 'local';
+                currentGroupName = 'Local-masks';
+                currentGroupType = 'local';
+                localStorage.setItem('selectedGroup', 'local');
+                updateHeader();
             }
             switchView('capture');
         });
@@ -1559,7 +1691,6 @@
 
                 hideLoading();
                 isTracking = true;
-                updateStatus('track', 'Face tracking active');
 
                 detectFaces();
             } catch (error) {
@@ -2439,7 +2570,8 @@
                 document.getElementById('capturePreview').classList.remove('hidden');
                 document.getElementById('captureControls').classList.add('hidden');
                 document.getElementById('editControls').classList.remove('hidden');
-                document.getElementById('eyeControls').classList.remove('hidden');
+                document.getElementById('editHelpText').classList.remove('hidden');
+                // document.getElementById('eyeControls').classList.remove('hidden');
 
                 // Change Retake button to Cancel when editing
                 document.getElementById('retakeBtn').textContent = 'Cancel';
@@ -2669,6 +2801,7 @@
 
                 // Update UI
                 document.getElementById('editControls').classList.add('hidden');
+                document.getElementById('editHelpText').classList.add('hidden');
                 document.getElementById('eyeControls').classList.add('hidden');
                 exitEyePointMode();
                 document.getElementById('toleranceRow').classList.add('hidden');
@@ -2700,7 +2833,8 @@
             // Restore UI
             document.getElementById('createTextureControls').classList.add('hidden');
             document.getElementById('editControls').classList.remove('hidden');
-            document.getElementById('eyeControls').classList.remove('hidden');
+            document.getElementById('editHelpText').classList.remove('hidden');
+            // document.getElementById('eyeControls').classList.remove('hidden');
             document.getElementById('toleranceRow').classList.remove('hidden');
 
             // Redraw mask
@@ -2767,7 +2901,8 @@
             // Restore UI
             document.getElementById('createTextureControls').classList.add('hidden');
             document.getElementById('editControls').classList.remove('hidden');
-            document.getElementById('eyeControls').classList.remove('hidden');
+            document.getElementById('editHelpText').classList.remove('hidden');
+            // document.getElementById('eyeControls').classList.remove('hidden');
             document.getElementById('toleranceRow').classList.remove('hidden');
 
             // Redraw with markers
@@ -2830,6 +2965,7 @@
                 document.getElementById('capturePreview').classList.add('hidden');
                 document.getElementById('captureControls').classList.remove('hidden');
                 document.getElementById('editControls').classList.add('hidden');
+                document.getElementById('editHelpText').classList.add('hidden');
                 document.getElementById('eyeControls').classList.add('hidden');
                 document.getElementById('toleranceRow').classList.add('hidden');
 
@@ -2898,7 +3034,8 @@
             document.getElementById('capturePreview').classList.remove('hidden');
             document.getElementById('captureControls').classList.add('hidden');
             document.getElementById('editControls').classList.remove('hidden');
-                document.getElementById('eyeControls').classList.remove('hidden');
+            document.getElementById('editHelpText').classList.remove('hidden');
+            // document.getElementById('eyeControls').classList.remove('hidden');
             document.getElementById('toleranceRow').classList.remove('hidden');
 
             // Run initial background removal
@@ -2939,7 +3076,8 @@
                 document.getElementById('capturePreview').classList.remove('hidden');
                 document.getElementById('captureControls').classList.add('hidden');
                 document.getElementById('editControls').classList.remove('hidden');
-                document.getElementById('eyeControls').classList.remove('hidden');
+                document.getElementById('editHelpText').classList.remove('hidden');
+                // document.getElementById('eyeControls').classList.remove('hidden');
                 document.getElementById('toleranceRow').classList.remove('hidden');
 
                 // Run initial background removal
@@ -3993,6 +4131,7 @@
 
                 // Hide edit-specific UI
                 document.getElementById('editControls').classList.add('hidden');
+                document.getElementById('editHelpText').classList.add('hidden');
                 document.getElementById('eyeControls').classList.add('hidden');
                 document.getElementById('toleranceRow').classList.add('hidden');
                 eyePointMode = false;
@@ -4373,11 +4512,17 @@
         // ============================================
 
         // Gallery
-        document.getElementById('galleryBtn').addEventListener('click', openGallery);
+        document.getElementById('galleryBtn').addEventListener('click', () => {
+            toggleMenu(false);
+            openGallery();
+        });
         document.getElementById('closeGalleryBtn').addEventListener('click', closeGallery);
 
         // Header share button
-        document.getElementById('headerShareBtn').addEventListener('click', showShareModal);
+        document.getElementById('headerShareBtn').addEventListener('click', () => {
+            toggleMenu(false);
+            showShareModal();
+        });
 
         // Save button - shows group selection for where to save
         document.getElementById('saveBtn').addEventListener('click', () => {
@@ -4460,6 +4605,14 @@
         });
         document.getElementById('pictureInput').addEventListener('change', loadPictureFromFile);
         document.getElementById('retakeBtn').addEventListener('click', retakePhoto);
+
+        // Close buttons in capture view
+        document.getElementById('closeCaptureBtn').addEventListener('click', () => {
+            switchView('track');
+        });
+        document.getElementById('closeCreateBtn').addEventListener('click', () => {
+            switchView('track');
+        });
 
         // Tap on preview canvas - either cut holes or place eye points (not in erase mode)
         function handleCanvasTap(e) {
@@ -4605,12 +4758,12 @@
             }
         });
 
-        // Stroke button
-        document.getElementById('strokeBtn').addEventListener('click', () => {
-            strokeEnabled = !strokeEnabled;
-            document.getElementById('strokeBtn').classList.toggle('active', strokeEnabled);
-            drawEyePointMarkers();
-        });
+        // Stroke button - commented out for now
+        // document.getElementById('strokeBtn').addEventListener('click', () => {
+        //     strokeEnabled = !strokeEnabled;
+        //     document.getElementById('strokeBtn').classList.toggle('active', strokeEnabled);
+        //     drawEyePointMarkers();
+        // });
 
         // Clear Points button
 
@@ -4656,24 +4809,14 @@
 
             overlay.addEventListener('touchstart', (e) => {
                 if (e.touches.length === 2) {
-                    // Only allow gesture adjustments for local masks or admin
-                    if (currentGroup !== 'local' && !isAdmin) return;
+                    // Only allow when in position editing mode
+                    if (!isEditingPosition) return;
 
                     // Need a mask loaded to adjust
                     if (!loadedMaskId) return;
 
                     e.preventDefault();
                     e.stopPropagation();
-
-                    // Check if this mask has been unlocked for editing
-                    if (!unlockedMasks.has(loadedMaskId)) {
-                        // First time for this mask - ask to unlock
-                        if (confirm('Unlock to edit position?')) {
-                            unlockedMasks.add(loadedMaskId);
-                        } else {
-                            return; // Cancelled - don't start gesture, will ask again next time
-                        }
-                    }
 
                     const data = getTouchData(e);
                     gestureState = {
@@ -4867,7 +5010,10 @@
         }
 
         // Group name in header shows group picker when clicked (switch group only, no edit)
-        document.getElementById('groupNameHeader').addEventListener('click', showGroupPicker);
+        document.getElementById('groupNameHeader').addEventListener('click', () => {
+            toggleMenu(false);
+            showGroupPicker();
+        });
 
         document.getElementById('groupCloseBtn').addEventListener('click', hideGroupMenu);
 
