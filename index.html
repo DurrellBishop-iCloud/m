@@ -1084,7 +1084,7 @@
                         <button class="menu-item" id="menuAdminBtn" style="display:none;">Admin Panel</button>
                     </div>
                 </div>
-                <div class="tap-hint"><span style="opacity:0.5">v2.40-dev</span></div>
+                <div class="tap-hint"><span style="opacity:0.5">v2.41-dev</span></div>
                 <video id="video" autoplay playsinline muted></video>
                 <canvas id="debugCanvas"></canvas>
                 <div id="tapOverlay" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:100;touch-action:none;"></div>
@@ -1243,7 +1243,7 @@
         // Saved masks
         const savedMasks = [];
 
-        console.log('Durrell Masks v2.40-dev loaded');
+        console.log('Durrell Masks v2.41-dev loaded');
 
         // Anchor point placement state (eyes and mouth)
         let eyePointMode = false;
@@ -4747,12 +4747,12 @@
             }
         });
 
-        // Stroke button
-        document.getElementById('strokeBtn').addEventListener('click', () => {
-            strokeEnabled = !strokeEnabled;
-            document.getElementById('strokeBtn').classList.toggle('active', strokeEnabled);
-            drawEyePointMarkers();
-        });
+        // Stroke button - commented out for now
+        // document.getElementById('strokeBtn').addEventListener('click', () => {
+        //     strokeEnabled = !strokeEnabled;
+        //     document.getElementById('strokeBtn').classList.toggle('active', strokeEnabled);
+        //     drawEyePointMarkers();
+        // });
 
         // Clear Points button
 
