@@ -1081,9 +1081,10 @@
                         <button class="menu-item" id="makeMaskBtn">Create your own mask</button>
                         <button class="menu-item" id="editPosBtn" style="display:none;">Align mask to your face</button>
                         <button class="menu-item" id="headerShareBtn">Share Mask Maker with friends</button>
+                        <button class="menu-item" id="menuAdminBtn" style="display:none;">Admin Panel</button>
                     </div>
                 </div>
-                <div class="tap-hint"><span style="opacity:0.5">v2.34-dev</span></div>
+                <div class="tap-hint"><span style="opacity:0.5">v2.35-dev</span></div>
                 <video id="video" autoplay playsinline muted></video>
                 <canvas id="debugCanvas"></canvas>
                 <div id="tapOverlay" style="position:absolute;top:0;left:0;width:100%;height:100%;z-index:100;touch-action:none;"></div>
@@ -1239,7 +1240,7 @@
         // Saved masks
         const savedMasks = [];
 
-        console.log('Durrell Masks v2.34-dev loaded');
+        console.log('Durrell Masks v2.35-dev loaded');
 
         // Anchor point placement state (eyes and mouth)
         let eyePointMode = false;
@@ -1526,6 +1527,10 @@
             // Update group name in menu header
             const menuGroupName = document.getElementById('menuGroupName');
             menuGroupName.textContent = currentGroupName;
+
+            // Show Admin Panel button only for admins
+            const menuAdminBtn = document.getElementById('menuAdminBtn');
+            menuAdminBtn.style.display = isAdmin ? '' : 'none';
         }
         updateHeader();
 
@@ -1553,6 +1558,12 @@
             isEditingPosition = !isEditingPosition;
             updateHeader();
             toggleMenu(false);
+        });
+
+        // Admin Panel button handler
+        document.getElementById('menuAdminBtn').addEventListener('click', () => {
+            toggleMenu(false);
+            showAdminPanel();
         });
 
         // Helper: Add admin param to URL if admin
