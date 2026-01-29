@@ -78,6 +78,12 @@
             color: white;
         }
 
+        .header-bar .header-btn.active {
+            background: #fff;
+            color: #000;
+            border-color: #fff;
+        }
+
         .share-btn {
             background: none;
             border: none;
@@ -998,7 +1004,7 @@
             <button class="header-btn" id="makeMaskBtn">Create Mask</button>
             <button class="header-btn" id="editPosBtn" style="display:none;">Edit Position</button>
         </div>
-        <div class="tap-hint">tap screen to change masks &nbsp;&nbsp;&nbsp; <button class="share-btn" id="headerShareBtn">share this app</button> <span style="opacity:0.5">v2.24-dev</span></div>
+        <div class="tap-hint">tap screen to change masks &nbsp;&nbsp;&nbsp; <button class="share-btn" id="headerShareBtn">share this app</button> <span style="opacity:0.5">v2.25-dev</span></div>
 
         <!-- Face Tracking View -->
         <div class="view active" id="trackView">
@@ -1159,7 +1165,7 @@
         // Saved masks
         const savedMasks = [];
 
-        console.log('Durrell Masks v2.24-dev loaded');
+        console.log('Durrell Masks v2.25-dev loaded');
 
         // Anchor point placement state (eyes and mouth)
         let eyePointMode = false;
@@ -1447,7 +1453,7 @@
             const editPosBtn = document.getElementById('editPosBtn');
             const canEdit = currentGroup === 'local' || isAdmin;
             editPosBtn.style.display = canEdit ? '' : 'none';
-            editPosBtn.textContent = isEditingPosition ? 'Done' : 'Edit Position';
+            editPosBtn.classList.toggle('active', isEditingPosition);
         }
         updateHeader();
 
@@ -1455,9 +1461,6 @@
         document.getElementById('editPosBtn').addEventListener('click', () => {
             isEditingPosition = !isEditingPosition;
             updateHeader();
-            if (isEditingPosition) {
-                updateStatus('track', 'Use 2 fingers to adjust mask position');
-            }
         });
 
         // Helper: Add admin param to URL if admin
