@@ -444,9 +444,9 @@
             right: 5px;
             width: 24px;
             height: 24px;
-            background: none;
-            border: 1px solid #e74c3c;
-            color: #e74c3c;
+            background: #000;
+            border: none;
+            color: #fff;
             font-size: 14px;
             font-weight: bold;
             cursor: pointer;
@@ -456,7 +456,7 @@
         }
 
         .gallery-mask-item .delete-btn:active {
-            background: #e74c3c;
+            background: #333;
             color: white;
         }
 
@@ -465,15 +465,15 @@
             bottom: 5px;
             right: 5px;
             padding: 4px 10px;
-            background: none;
-            border: 1px solid #e74c3c;
-            color: #e74c3c;
+            background: #000;
+            border: none;
+            color: #fff;
             font-size: 11px;
             cursor: pointer;
         }
 
         .gallery-mask-item .edit-btn:active {
-            background: #e74c3c;
+            background: #333;
             color: white;
         }
 
@@ -997,7 +997,7 @@
             <button class="header-btn" id="galleryBtn">Choose Mask</button>
             <button class="header-btn" id="makeMaskBtn">Create Mask</button>
         </div>
-        <div class="tap-hint">tap screen to change masks &nbsp;&nbsp;&nbsp; <button class="share-btn" id="headerShareBtn">share this app</button> <span style="opacity:0.5">v2.21</span></div>
+        <div class="tap-hint">tap screen to change masks &nbsp;&nbsp;&nbsp; <button class="share-btn" id="headerShareBtn">share this app</button> <span style="opacity:0.5">v2.22-dev</span></div>
 
         <!-- Face Tracking View -->
         <div class="view active" id="trackView">
@@ -1158,7 +1158,7 @@
         // Saved masks
         const savedMasks = [];
 
-        console.log('Durrell Masks v2.21 loaded');
+        console.log('Durrell Masks v2.22-dev loaded');
 
         // Anchor point placement state (eyes and mouth)
         let eyePointMode = false;
