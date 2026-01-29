@@ -84,6 +84,59 @@
             border-color: #fff;
         }
 
+        .menu-btn {
+            background: none;
+            border: 1px solid #888;
+            color: #888;
+            padding: 4px 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .menu-btn.active {
+            background: #fff;
+            color: #000;
+            border-color: #fff;
+        }
+
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 12px;
+            z-index: 200;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .dropdown-menu.open {
+            display: flex;
+        }
+
+        .dropdown-menu .menu-item {
+            background: none;
+            border: 1px solid #888;
+            color: #888;
+            padding: 12px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            text-align: left;
+        }
+
+        .dropdown-menu .menu-item:active {
+            background: #888;
+            color: white;
+        }
+
+        .dropdown-menu .menu-item.active {
+            background: #fff;
+            color: #000;
+            border-color: #fff;
+        }
+
         .share-btn {
             background: none;
             border: none;
@@ -997,14 +1050,17 @@
 
     <div id="debugInfo" style="display:none;position:fixed;bottom:10px;left:10px;background:rgba(0,0,0,0.8);color:#0f0;font-family:monospace;font-size:12px;padding:10px;z-index:9999;max-width:90%;"></div>
     <div class="container">
-        <!-- Header with group name and buttons -->
-        <div class="header-bar" id="headerBar">
+        <!-- Header with menu button -->
+        <div class="header-bar" id="headerBar" style="position:relative;">
+            <button class="menu-btn" id="menuBtn">☰</button>
             <span class="group-name" id="groupNameHeader">Public-masks</span>
-            <button class="header-btn" id="galleryBtn">Choose Mask</button>
-            <button class="header-btn" id="makeMaskBtn">Create Mask</button>
-            <button class="header-btn" id="editPosBtn" style="display:none;">Edit Position</button>
+            <div class="dropdown-menu" id="dropdownMenu">
+                <button class="menu-item" id="galleryBtn">Choose Mask</button>
+                <button class="menu-item" id="makeMaskBtn">Create Mask</button>
+                <button class="menu-item" id="editPosBtn" style="display:none;">Edit Position</button>
+            </div>
         </div>
-        <div class="tap-hint">tap screen to change masks &nbsp;&nbsp;&nbsp; <button class="share-btn" id="headerShareBtn">share this app</button> <span style="opacity:0.5">v2.25-dev</span></div>
+        <div class="tap-hint">tap screen to change masks &nbsp;&nbsp;&nbsp; <button class="share-btn" id="headerShareBtn">share this app</button> <span style="opacity:0.5">v2.26-dev</span></div>
 
         <!-- Face Tracking View -->
         <div class="view active" id="trackView">
@@ -1165,7 +1221,7 @@
         // Saved masks
         const savedMasks = [];
 
-        console.log('Durrell Masks v2.25-dev loaded');
+        console.log('Durrell Masks v2.26-dev loaded');
 
         // Anchor point placement state (eyes and mouth)
         let eyePointMode = false;
@@ -1457,10 +1513,30 @@
         }
         updateHeader();
 
+        // Menu toggle
+        const menuBtn = document.getElementById('menuBtn');
+        const dropdownMenu = document.getElementById('dropdownMenu');
+
+        function toggleMenu(show) {
+            const isOpen = show !== undefined ? show : !dropdownMenu.classList.contains('open');
+            dropdownMenu.classList.toggle('open', isOpen);
+            menuBtn.classList.toggle('active', isOpen);
+        }
+
+        menuBtn.addEventListener('click', () => toggleMenu());
+
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!menuBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
+                toggleMenu(false);
+            }
+        });
+
         // Edit Position button handler
         document.getElementById('editPosBtn').addEventListener('click', () => {
             isEditingPosition = !isEditingPosition;
             updateHeader();
+            toggleMenu(false);
         });
 
         // Helper: Add admin param to URL if admin
@@ -1485,6 +1561,7 @@
 
         // Make Mask button - goes directly to capture for current group
         document.getElementById('makeMaskBtn').addEventListener('click', () => {
+            toggleMenu(false);
             // Non-admins can't make masks for public
             if (currentGroup === 'public' && !isAdmin) {
                 alert('Public-masks can\'t be accessed.\nSwitch to Local-masks or make your own New Group-masks.\n(These can be shared with friends)');
@@ -4395,7 +4472,10 @@
         // ============================================
 
         // Gallery
-        document.getElementById('galleryBtn').addEventListener('click', openGallery);
+        document.getElementById('galleryBtn').addEventListener('click', () => {
+            toggleMenu(false);
+            openGallery();
+        });
         document.getElementById('closeGalleryBtn').addEventListener('click', closeGallery);
 
         // Header share button
