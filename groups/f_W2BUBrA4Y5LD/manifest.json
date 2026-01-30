@@ -122,6 +122,21 @@
           "y": 0.45311065484089363
         }
       }
+    },
+    {
+      "id": "mask-1769773388608",
+      "name": "iPhone-Jan30-1143",
+      "image": "groups/f_W2BUBrA4Y5LD/images/mask-1769773388608.png",
+      "anchors": {
+        "leftEye": {
+          "x": 0.65,
+          "y": 0.38
+        },
+        "rightEye": {
+          "x": 0.35,
+          "y": 0.38
+        }
+      }
     }
   ]
 }
